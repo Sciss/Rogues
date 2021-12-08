@@ -1,0 +1,13 @@
+target/
+lib_managed/
+src_managed/
+project/boot/
+.idea/
+.idea_modules/
+*.app
+*.swp
+/.bsp/
+/kontakt.jar
+alpha/aleatorium-alpha.jar
+beta/aleatorium-beta.jar
+workspaces/*.mllt/*.csv

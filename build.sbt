@@ -1,0 +1,74 @@
+lazy val baseName       = "Rogues"
+lazy val baseNameL      = baseName.toLowerCase
+lazy val projectVersion = "0.1.0-SNAPSHOT"
+
+lazy val buildInfoSettings = Seq(
+  // ---- build info ----
+  buildInfoKeys := Seq(name, organization, version, scalaVersion, description,
+    BuildInfoKey.map(homepage) { case (k, opt)           => k -> opt.get },
+    BuildInfoKey.map(licenses) { case (_, Seq((lic, _))) => "license" -> lic }
+  ),
+  buildInfoOptions += BuildInfoOption.BuildTime
+)
+
+lazy val commonSettings = Seq(
+  version      := projectVersion,
+  homepage     := Some(url(s"https://github.com/Sciss/$baseName")),
+  scalaVersion := "3.1.0", // "2.13.7",
+  licenses     := Seq("AGPL v3+" -> url("http://www.gnu.org/licenses/agpl-3.0.txt")),
+)
+
+lazy val root = project.in(file("."))
+  .aggregate(common)
+  .settings(commonSettings)
+  .settings(
+    name := baseName,
+    description  := "An art piece",
+  )
+
+lazy val common = project.in(file("common"))
+  .enablePlugins(BuildInfoPlugin)
+  .settings(commonSettings)
+  .settings(buildInfoSettings)
+  .settings(
+    name := s"$baseName-common",
+    description := "Common code",
+    libraryDependencies ++= Seq(
+      "com.pi4j"      %  "pi4j-core"            % deps.common.pi4j,       // GPIO control
+      "de.sciss"      %% "fileutil"             % deps.common.fileUtil,   // utility functions
+      "de.sciss"      %% "model"                % deps.common.model,      // events
+      "de.sciss"      %% "numbers"              % deps.common.numbers,    // numeric utilities
+      "de.sciss"      %% "swingplus"            % deps.common.swingPlus,  // user interface
+      "net.harawata"  %  "appdirs"              % deps.common.appDirs,    // finding standard directories
+      "org.rogach"    %% "scallop"              % deps.common.scallop,    // command line option parsing
+    ),
+    buildInfoPackage := "de.sciss.rogues",
+  )
+
+lazy val deps = new {
+  val common = new {
+    val appDirs   = "1.2.1"
+    val fileUtil  = "1.1.5"
+    val model     = "0.3.5"
+    val numbers   = "0.2.1"
+    val pi4j      = "2.1.0"
+    val scallop   = "4.1.0"
+    val swingPlus = "0.5.0"
+  }
+}
+
+lazy val assemblySettings = Seq(
+  // ---- assembly ----
+  assembly / test            := {},
+  assembly / target          := baseDirectory.value,
+  assembly / assemblyMergeStrategy := {
+    case "logback.xml" => MergeStrategy.last
+    case PathList("org", "xmlpull", _ @ _*)              => MergeStrategy.first
+    case PathList("org", "w3c", "dom", "events", _ @ _*) => MergeStrategy.first // bloody Apache Batik
+    case PathList(ps @ _*) if ps.last endsWith "module-info.class" => MergeStrategy.first // bloody Jackson
+    case x =>
+      val old = (assembly / assemblyMergeStrategy).value
+      old(x)
+  },
+  assembly / fullClasspath := (Test / fullClasspath).value // https://github.com/sbt/sbt-assembly/issues/27
+)
