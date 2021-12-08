@@ -25,7 +25,7 @@ import scala.swing.{Color, Component, Dimension, Graphics2D, Image, MainFrame, S
 object SteinerChain:
   def main(args: Array[String]): Unit = Swing.onEDT(run())
 
-  private val chain = new Chain(numCircles = 3 /*7*/, radius = 240.0, xOffset = -0.25)
+  private val chain = new Chain(numCircles = /*4*/ 3 /*7*/, radius = 240.0, xOffset = -0.25)
   
   def run(): Unit =
     val uriMoon = getClass.getResource("/moon512px.png")
@@ -47,6 +47,9 @@ object SteinerChain:
     private val at          = new AffineTransform()
     private val t0          = System.currentTimeMillis()
     private val period      = 10.0 // seconds per cycle
+    private val chainRadii  = Array.tabulate(chain.numCircles)(chain.chainCircle(_).r)
+    private val minChR      = chainRadii.min
+    private val maxChR      = chainRadii.max
 
     opaque = true
 
@@ -85,15 +88,19 @@ object SteinerChain:
 
 //      g.setColor(new Color(0xFF0000))
       while i < n do
-        val cChain = chain.chainCircle(index = i, angle = angle)
-        val scale = cChain.r / 256.0
-        at.setToIdentity()
-        at.translate(cChain.x, cChain.y)
-        at.scale(scale, scale)
-        at.translate(-256.0, -256.0)
-        g.drawImage(imgMoon, at, p)
-//        cChain.set(circle)
-//        g.draw(circle)
+        if true /*i % 2 == 0*/ then
+          val cChain = chain.chainCircle(index = i, angle = angle)
+          val scale = cChain.r / 256.0
+          at.setToIdentity()
+          at.translate(cChain.x, cChain.y)
+          at.rotate(-angle)
+          at.scale(scale, scale)
+          at.translate(-256.0, -256.0)
+          g.drawImage(imgMoon, at, p)
+          cChain.set(circle)
+          val alpha = cChain.r.linLin(minChR, maxChR, 0, 200).toInt.clip(0, 255)
+          g.setColor(new Color(0, 0, 0, alpha))
+          g.fill(circle)
         i += 1
     end paintComponent
 
