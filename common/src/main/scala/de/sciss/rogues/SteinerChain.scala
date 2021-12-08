@@ -16,9 +16,11 @@ package de.sciss.rogues
 import de.sciss.numbers.Implicits.*
 
 import java.awt.RenderingHints
-import java.awt.geom.Ellipse2D
+import java.awt.geom.{AffineTransform, Ellipse2D}
+import java.awt.image.BufferedImage
+import javax.imageio.ImageIO
 import javax.swing.Timer
-import scala.swing.{Color, Component, Dimension, Graphics2D, MainFrame, Swing}
+import scala.swing.{Color, Component, Dimension, Graphics2D, Image, MainFrame, Swing}
 
 object SteinerChain:
   def main(args: Array[String]): Unit = Swing.onEDT(run())
@@ -26,18 +28,23 @@ object SteinerChain:
   private val chain = new Chain(numCircles = 3 /*7*/, radius = 240.0, xOffset = -0.25)
   
   def run(): Unit =
+    val uriMoon = getClass.getResource("/moon512px.png")
+    val imgMoon = ImageIO.read(uriMoon)
+    val canvas  = new Canvas(imgMoon)
+
     new MainFrame:
       title     = "Steiner Chain"
-      contents  = Canvas
+      contents  = canvas
       size      = new Dimension(600, 600)
       centerOnScreen()
       open()
 
-    val t = new Timer(20, _ => Canvas.repaint())
+    val t = new Timer(20, _ => canvas.repaint())
     t.start()
 
-  object Canvas extends Component:
+  class Canvas(imgMoon: BufferedImage) extends Component:
     private val circle      = new Ellipse2D.Double()
+    private val at          = new AffineTransform()
     private val t0          = System.currentTimeMillis()
     private val period      = 10.0 // seconds per cycle
 
@@ -52,32 +59,47 @@ object SteinerChain:
 
       g.setColor(new Color(0x000000))
       g.fillRect(0, 0, w, h)
-      g.setRenderingHint(RenderingHints.KEY_ANTIALIASING  , RenderingHints.VALUE_ANTIALIAS_ON )
-      g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE  )
+      g.setRenderingHint(RenderingHints.KEY_ANTIALIASING  , RenderingHints.VALUE_ANTIALIAS_ON         )
+      g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE          )
+      g.setRenderingHint(RenderingHints.KEY_INTERPOLATION , RenderingHints.VALUE_INTERPOLATION_BICUBIC)
 
       g.translate(cx, cy)
 
       g.setColor(new Color(0x333333))
-      chain.setOuterCircle(circle)
+      val cOut = chain.outerCircle
+      cOut.set(circle)
       g.draw(circle)
 
-      g.setColor(new Color(0xFF6666))
-      chain.setInnerCircle(circle)
-      g.draw(circle)
+//      g.setColor(new Color(0xFF6666))
+//      val cIn = chain.innerCircle
+//      cIn.set(circle)
+//      g.draw(circle)
 
       var i = 0
       val n = chain.numCircles
 
       val t1      = System.currentTimeMillis()
       val dt      = (t1 - t0) * 0.001
-      val angle   = (dt / period) % 1.0 * (2 * math.Pi)
+      val angle0  = (dt / period) % 1.0 * (2 * math.Pi)
+      val angle   = math.sin(angle0) * math.Pi
 
-      g.setColor(new Color(0x999999))
+//      g.setColor(new Color(0xFF0000))
       while i < n do
-        chain.setChainCircle(circle, index = i, angle = angle)
-        g.draw(circle)
+        val cChain = chain.chainCircle(index = i, angle = angle)
+        val scale = cChain.r / 256.0
+        at.setToIdentity()
+        at.translate(cChain.x, cChain.y)
+        at.scale(scale, scale)
+        at.translate(-256.0, -256.0)
+        g.drawImage(imgMoon, at, p)
+//        cChain.set(circle)
+//        g.draw(circle)
         i += 1
     end paintComponent
+
+  case class Circle(x: Double, y: Double, r: Double):
+    def set(e: Ellipse2D): Unit =
+      e.setFrameFromCenter(x, y, x + r, y + r)
 
   class Chain(val numCircles: Int, radius: Double, xOffset: Double = 0.0, yOffset: Double = 0.0):
     require (numCircles >= 3)
@@ -88,25 +110,24 @@ object SteinerChain:
     private val c     = a * sinB / (1.0 - sinB)
     private val d     = a + c
 
-    def setOuterCircle(circle: Ellipse2D): Unit =
-      circle.setFrameFromCenter(0.0, 0.0, radius, radius)
+    def outerCircle: Circle = Circle(0.0, 0.0, radius)
 
-    def setInnerCircle(circle: Ellipse2D): Unit =
+    def innerCircle: Circle =
       val cr = a + 2 * c
-      inverseCircle(xOffset, yOffset, cr, circle)
+      inverseCircle(xOffset, yOffset, cr)
 
-    def setChainCircle(circle: Ellipse2D, index: Int, angle: Double = 0.0): Unit =
+    def chainCircle(index: Int, angle: Double = 0.0): Circle =
       val phase = index * 2 * b + angle
       val cx = xOffset + d * math.cos(phase)
       val cy = yOffset + d * math.sin(phase)
       val cr = c
-      inverseCircle(cx, cy, cr, circle)
+      inverseCircle(cx, cy, cr)
 
-    private def inverseCircle(cx: Double, cy: Double, cr: Double, circle: Ellipse2D): Unit =
+    private def inverseCircle(cx: Double, cy: Double, cr: Double): Circle =
       val ci  = 1.0 / (cx.squared + cy.squared - cr.squared)
       val cxi = (cx * ci + xOffset / a) * radius
       val cyi = (cy * ci + yOffset / a) * radius
       val ri  = cr * ci * radius
-      circle.setFrameFromCenter(cxi, cyi, cxi + ri, cyi + ri)
+      Circle(cxi, cyi, ri)
 
   end Chain
