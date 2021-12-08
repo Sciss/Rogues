@@ -23,7 +23,7 @@ import scala.swing.{Color, Component, Dimension, Graphics2D, MainFrame, Swing}
 object SteinerChain:
   def main(args: Array[String]): Unit = Swing.onEDT(run())
 
-  private val chain = new Chain(7, 240.0, xOffset = -0.25)
+  private val chain = new Chain(numCircles = 3 /*7*/, radius = 240.0, xOffset = -0.25)
   
   def run(): Unit =
     new MainFrame:
@@ -39,7 +39,7 @@ object SteinerChain:
   object Canvas extends Component:
     private val circle      = new Ellipse2D.Double()
     private val t0          = System.currentTimeMillis()
-    private val angleSpeed  = 0.1 // Hz
+    private val period      = 10.0 // seconds per cycle
 
     opaque = true
 
@@ -70,13 +70,14 @@ object SteinerChain:
 
       val t1      = System.currentTimeMillis()
       val dt      = (t1 - t0) * 0.001
-      val angle   = (dt * angleSpeed) % (2 * math.Pi)
+      val angle   = (dt / period) % 1.0 * (2 * math.Pi)
 
       g.setColor(new Color(0x999999))
       while i < n do
         chain.setChainCircle(circle, index = i, angle = angle)
         g.draw(circle)
         i += 1
+    end paintComponent
 
   class Chain(val numCircles: Int, radius: Double, xOffset: Double = 0.0, yOffset: Double = 0.0):
     require (numCircles >= 3)
