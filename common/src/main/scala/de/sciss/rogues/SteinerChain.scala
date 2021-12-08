@@ -14,14 +14,15 @@
 package de.sciss.rogues
 
 import de.sciss.numbers.Implicits.*
-import org.rogach.scallop.{ScallopConf, ScallopOption => Opt}
+import org.rogach.scallop.{ScallopConf, ScallopOption as Opt}
 
 import java.awt.RenderingHints
 import java.awt.geom.{AffineTransform, Ellipse2D}
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 import javax.swing.Timer
-import scala.swing.{Color, Component, Dimension, Graphics2D, Image, MainFrame, Swing}
+import scala.swing.event.{Key, KeyPressed, KeyTyped}
+import scala.swing.{Color, Component, Dimension, Graphics2D, Image, MainFrame, Point, Swing}
 
 object SteinerChain:
   case class Config(
@@ -107,6 +108,12 @@ object SteinerChain:
     new MainFrame:
       if c.fullScreen then
         peer.setUndecorated(true)
+        canvas.cursor = java.awt.Toolkit.getDefaultToolkit.createCustomCursor(
+          new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB), new Point(0, 0), "hidden"
+        )
+        canvas.keys.reactions += {
+          case KeyPressed(_, Key.Escape, _, _) => closeOperation()
+        }
       else
         title = "Steiner Chain"
 
@@ -114,6 +121,7 @@ object SteinerChain:
       pack()
       centerOnScreen()
       open()
+      canvas.requestFocus()
 
     val t = new Timer(c.refreshPeriod, _ => canvas.repaint())
     t.start()
