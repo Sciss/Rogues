@@ -14,6 +14,7 @@
 package de.sciss.rogues
 
 import de.sciss.numbers.Implicits.*
+import org.rogach.scallop.{ScallopConf, ScallopOption => Opt}
 
 import java.awt.RenderingHints
 import java.awt.geom.{AffineTransform, Ellipse2D}
@@ -23,35 +24,112 @@ import javax.swing.Timer
 import scala.swing.{Color, Component, Dimension, Graphics2D, Image, MainFrame, Swing}
 
 object SteinerChain:
-  def main(args: Array[String]): Unit = Swing.onEDT(run())
+  case class Config(
+                   numCircles   : Int     = 3,
+                   radius       : Int     = 240,
+                   xOffset      : Double  = -0.25,
+                   yOffset      : Double  = 0.0,
+                   margin       : Int     = 60,
+                   refreshPeriod: Int     = 20,
+                   cyclePeriod  : Double  = 10.0,
+                   fullScreen   : Boolean = false,
+                   drawEnvelope : Boolean = true,
+                   )
 
-  private val chain = new Chain(numCircles = /*4*/ 3 /*7*/, radius = 240.0, xOffset = -0.25)
-  
-  def run(): Unit =
+  def main(args: Array[String]): Unit =
+    object p extends ScallopConf(args):
+      import org.rogach.scallop.*
+
+      printedName = "SteinerChain"
+      private val default = Config()
+
+      val numCircles: Opt[Int] = opt(default = Some(default.numCircles),
+        descr = s"Number of moons, 3 or larger (default: ${default.numCircles}).",
+        validate = x => x >= 3
+      )
+      val radius: Opt[Int] = opt(default = Some(default.radius),
+        descr = s"Envelope radius, greater than zero (default: ${default.radius}).",
+        validate = x => x > 0,
+      )
+      val xOffset: Opt[Double] = opt(default = Some(default.xOffset),
+        descr = s"Rotation center horizontal offset, between -1 and +1 (default: ${default.xOffset}).",
+        validate = x => x >= -1.0 && x <= +1.0,
+      )
+      val yOffset: Opt[Double] = opt(default = Some(default.yOffset),
+        descr = s"Rotation center vertical offset, between -1 and +1 (default: ${default.yOffset}).",
+        validate = x => x >= -1.0 && x <= +1.0,
+      )
+      val margin: Opt[Int] = opt(default = Some(default.margin),
+        descr = s"Window margin in pixels (default: ${default.margin}).",
+        validate = x => x >= 0,
+      )
+      val refreshPeriod: Opt[Int] = opt(default = Some(default.refreshPeriod),
+        descr = s"Window refresh period in milliseconds (default: ${default.refreshPeriod}).",
+        validate = x => x > 0,
+      )
+      val cyclePeriod: Opt[Double] = opt(default = Some(default.cyclePeriod),
+        descr = s"Animation cycle period in seconds (default: ${default.cyclePeriod}).",
+        validate = x => x > 0.0,
+      )
+      val fullScreen: Opt[Boolean] = toggle(default = Some(default.fullScreen),
+        descrYes = "Put window into full-screen mode.",
+      )
+      val hideEnvelope: Opt[Boolean] = toggle(default = Some(!default.drawEnvelope),
+        descrYes = "Do not draw enveloping circle.",
+      )
+
+      verify()
+      val config: Config = Config(
+        numCircles   = numCircles   (),
+        radius       = radius       (),
+        xOffset      = xOffset      (),
+        yOffset      = yOffset      (),
+        margin       = margin       (),
+        refreshPeriod= refreshPeriod(),
+        cyclePeriod  = cyclePeriod  (),
+        fullScreen   = fullScreen   (),
+        drawEnvelope = !hideEnvelope(),
+      )
+    end p
+
+    Swing.onEDT(run(p.config))
+  end main
+
+  def run(c: Config): Unit =
+    val chain   = new Chain(numCircles = c.numCircles, radius = c.radius.toDouble,
+      xOffset = c.xOffset, yOffset = c.yOffset)
     val uriMoon = getClass.getResource("/moon512px.png")
     val imgMoon = ImageIO.read(uriMoon)
-    val canvas  = new Canvas(imgMoon)
+    val extent  = (c.radius + c.margin) * 2
+    val canvas  = new Canvas(imgMoon, chain, extent = extent,
+      cyclePeriod = c.cyclePeriod, drawEnvelope = c.drawEnvelope)
 
     new MainFrame:
-      title     = "Steiner Chain"
+      if c.fullScreen then
+        peer.setUndecorated(true)
+      else
+        title = "Steiner Chain"
+
       contents  = canvas
-      size      = new Dimension(600, 600)
+      pack()
       centerOnScreen()
       open()
 
-    val t = new Timer(20, _ => canvas.repaint())
+    val t = new Timer(c.refreshPeriod, _ => canvas.repaint())
     t.start()
 
-  class Canvas(imgMoon: BufferedImage) extends Component:
+  class Canvas(imgMoon: BufferedImage, chain: Chain, extent: Int, cyclePeriod: Double, drawEnvelope: Boolean)
+    extends Component:
+
     private val circle      = new Ellipse2D.Double()
     private val at          = new AffineTransform()
     private val t0          = System.currentTimeMillis()
-    private val period      = 10.0 // seconds per cycle
     private val chainRadii  = Array.tabulate(chain.numCircles)(chain.chainCircle(_).r)
     private val minChR      = chainRadii.min
     private val maxChR      = chainRadii.max
 
     opaque = true
+    preferredSize = new Dimension(extent, extent)
 
     override protected def paintComponent(g: Graphics2D): Unit =
       val p   = peer
@@ -68,10 +146,11 @@ object SteinerChain:
 
       g.translate(cx, cy)
 
-      g.setColor(new Color(0x333333))
-      val cOut = chain.outerCircle
-      cOut.set(circle)
-      g.draw(circle)
+      if drawEnvelope then
+        g.setColor(new Color(0x333333))
+        val cOut = chain.outerCircle
+        cOut.set(circle)
+        g.draw(circle)
 
 //      g.setColor(new Color(0xFF6666))
 //      val cIn = chain.innerCircle
@@ -83,7 +162,7 @@ object SteinerChain:
 
       val t1      = System.currentTimeMillis()
       val dt      = (t1 - t0) * 0.001
-      val angle0  = (dt / period) % 1.0 * (2 * math.Pi)
+      val angle0  = (dt / cyclePeriod) % 1.0 * (2 * math.Pi)
       val angle   = math.sin(angle0) * math.Pi
 
 //      g.setColor(new Color(0xFF0000))

@@ -11,7 +11,9 @@ To contact the author, send an e-mail to `contact at sciss.de`.
 
 ## building
 
-Builds with sbt against Scala 3. Test: `sbt common/run`
+Builds with sbt against Scala 3. See options: `sbt 'common/run --help'`. E.g.
+
+    sbt 'common/run --margin 0 --radius 240 --full-screen --hide-envelope'
 
 ## fix wiring-pi
 

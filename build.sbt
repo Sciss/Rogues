@@ -16,6 +16,7 @@ lazy val commonSettings = Seq(
   homepage     := Some(url(s"https://github.com/Sciss/$baseName")),
   scalaVersion := "3.1.0", // "2.13.7",
   licenses     := Seq("AGPL v3+" -> url("http://www.gnu.org/licenses/agpl-3.0.txt")),
+  run / fork   := true,
 )
 
 lazy val root = project.in(file("."))
