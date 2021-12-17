@@ -46,4 +46,3 @@ object CapSense:
     println("Shutting down")
     instance.shutdown()
     sys.exit()
-    
