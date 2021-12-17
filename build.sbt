@@ -65,14 +65,16 @@ lazy val assemblySettings = Seq(
   // ---- assembly ----
   assembly / test            := {},
   assembly / target          := baseDirectory.value,
-  assembly / assemblyMergeStrategy := {
+  ThisBuild / assemblyMergeStrategy := {
     case "logback.xml" => MergeStrategy.last
     case PathList("org", "xmlpull", _ @ _*)              => MergeStrategy.first
     case PathList("org", "w3c", "dom", "events", _ @ _*) => MergeStrategy.first // Apache Batik
-    case PathList(ps @ _*) if ps.last endsWith "module-info.class" => MergeStrategy.first // Jackson, Pi4J
+    case p @ PathList(ps @ _*) if ps.last endsWith "module-info.class" =>
+      println(s"DISCARD: $p")
+      MergeStrategy.discard // Jackson, Pi4J
     case x =>
       val old = (assembly / assemblyMergeStrategy).value
       old(x)
   },
-  assembly / fullClasspath := (Test / fullClasspath).value // https://github.com/sbt/sbt-assembly/issues/27
+//  assembly / fullClasspath := (Test / fullClasspath).value // https://github.com/sbt/sbt-assembly/issues/27
 )
