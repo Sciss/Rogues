@@ -17,12 +17,12 @@ lazy val commonSettings = Seq(
   scalaVersion := "3.1.0", // "2.13.7",
   licenses     := Seq("AGPL v3+" -> url("http://www.gnu.org/licenses/agpl-3.0.txt")),
   run / fork   := true,
-)
+) ++ assemblySettings
 
 lazy val root = project.in(file("."))
   .aggregate(common)
   .settings(commonSettings)
-  .settings(assemblySettings)
+//  .settings(assemblySettings)
   .settings(
     name := baseName,
     description  := "An art piece",
@@ -73,7 +73,7 @@ lazy val assemblySettings = Seq(
       println(s"DISCARD: $p")
       MergeStrategy.discard // Jackson, Pi4J
     case x =>
-      val old = (assembly / assemblyMergeStrategy).value
+      val old = (ThisBuild / assemblyMergeStrategy).value
       old(x)
   },
 //  assembly / fullClasspath := (Test / fullClasspath).value // https://github.com/sbt/sbt-assembly/issues/27
