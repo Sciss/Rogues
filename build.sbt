@@ -22,6 +22,7 @@ lazy val commonSettings = Seq(
 lazy val root = project.in(file("."))
   .aggregate(common)
   .settings(commonSettings)
+  .settings(assemblySettings)
   .settings(
     name := baseName,
     description  := "An art piece",
@@ -67,8 +68,8 @@ lazy val assemblySettings = Seq(
   assembly / assemblyMergeStrategy := {
     case "logback.xml" => MergeStrategy.last
     case PathList("org", "xmlpull", _ @ _*)              => MergeStrategy.first
-    case PathList("org", "w3c", "dom", "events", _ @ _*) => MergeStrategy.first // bloody Apache Batik
-    case PathList(ps @ _*) if ps.last endsWith "module-info.class" => MergeStrategy.first // bloody Jackson
+    case PathList("org", "w3c", "dom", "events", _ @ _*) => MergeStrategy.first // Apache Batik
+    case PathList(ps @ _*) if ps.last endsWith "module-info.class" => MergeStrategy.first // Jackson, Pi4J
     case x =>
       val old = (assembly / assemblyMergeStrategy).value
       old(x)
