@@ -35,13 +35,15 @@ lazy val common = project.in(file("common"))
     name := s"$baseName-common",
     description := "Common code",
     libraryDependencies ++= Seq(
-      "com.pi4j"      %  "pi4j-core"            % deps.common.pi4j,       // GPIO control
-      "de.sciss"      %% "fileutil"             % deps.common.fileUtil,   // utility functions
-      "de.sciss"      %% "model"                % deps.common.model,      // events
-      "de.sciss"      %% "numbers"              % deps.common.numbers,    // numeric utilities
-      "de.sciss"      %% "swingplus"            % deps.common.swingPlus,  // user interface
-      "net.harawata"  %  "appdirs"              % deps.common.appDirs,    // finding standard directories
-      "org.rogach"    %% "scallop"              % deps.common.scallop,    // command line option parsing
+      "com.pi4j"      %  "pi4j-core"                % deps.common.pi4j,       // GPIO control
+      "com.pi4j"      %  "pi4j-plugin-raspberrypi"  % deps.common.pi4j,       // GPIO control
+      "com.pi4j"      %  "pi4j-plugin-pigpio"       % deps.common.pi4j,       // GPIO control
+      "de.sciss"      %% "fileutil"                 % deps.common.fileUtil,   // utility functions
+      "de.sciss"      %% "model"                    % deps.common.model,      // events
+      "de.sciss"      %% "numbers"                  % deps.common.numbers,    // numeric utilities
+      "de.sciss"      %% "swingplus"                % deps.common.swingPlus,  // user interface
+      "net.harawata"  %  "appdirs"                  % deps.common.appDirs,    // finding standard directories
+      "org.rogach"    %% "scallop"                  % deps.common.scallop,    // command line option parsing
     ),
     buildInfoPackage := "de.sciss.rogues",
   )
