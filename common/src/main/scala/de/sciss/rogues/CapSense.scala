@@ -19,7 +19,7 @@ object CapSense:
       .address(PIN_OUT)
       .provider("pigpio-digital-output")
     val cIn       = DigitalInput.newConfigBuilder(instance)
-      .id("out")
+      .id("in")
       .address(PIN_IN)
       .pull(PullResistance.OFF)
       .provider("pigpio-digital-input")
