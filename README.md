@@ -2,7 +2,7 @@
 
 # Rogues
 
-This repository contains code for an ongoing art project.
+This repository contains code for an ongoing art project. See [Research Catalogue](https://www.researchcatalogue.net/view/1437680/1437681).
 
 (C)opyright 2021 by Hanns Holger Rutz. All rights reserved. This project is released under the
 [GNU Affero General Public License](https://github.comt/Sciss/Rogues/blob/main/LICENSE) v3+ and
@@ -17,7 +17,7 @@ Builds with sbt against Scala 3. See options: `sbt 'common/run --help'`. E.g.
 
 ## cap test
 
-piggpio must be installed first: http://abyz.me.uk/rpi/pigpio/download.html
+pigpio must be installed first: http://abyz.me.uk/rpi/pigpio/download.html
 
     git clone https://github.com/joan2937/pigpio.git
     cd pigpio
