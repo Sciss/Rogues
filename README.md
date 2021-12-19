@@ -13,9 +13,27 @@ To contact the author, send an e-mail to `contact at sciss.de`.
 
 Builds with sbt against Scala 3. See options: `sbt 'common/run --help'`. E.g.
 
-    sbt 'common/run --margin 0 --radius 240 --full-screen --hide-envelope'
+    sbt 'common/run-main de.sciss.rogues.SteinerChain --margin 0 --radius 240 --full-screen --hide-envelope'
+
+## cap test
+
+piggpio must be installed first: http://abyz.me.uk/rpi/pigpio/download.html
+
+    git clone https://github.com/joan2937/pigpio.git
+    cd pigpio
+    make
+    sudo make install
+
+The in `Rogues`:
+
+    sbt common/assembly
+    sudo java -cp common/Rogues-common-assembly-0.1.0-SNAPSHOT.jar de.sciss.rogues.CapSense
+
+(yes, I need to get rid of the sudo; thanks pi4j)
 
 ## fix wiring-pi
+
+__OBSOLETE__
 
 __Important:__ Wiring-Pi is broken on the Pi 4. The pull up/down resistors cannot be configured.
 See https://pi4j.com/1.3/install.html#WiringPi_Native_Library -- one needs to replace the installed versions

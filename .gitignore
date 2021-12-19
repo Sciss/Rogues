@@ -7,7 +7,5 @@ project/boot/
 *.app
 *.swp
 /.bsp/
-/kontakt.jar
-alpha/aleatorium-alpha.jar
-beta/aleatorium-beta.jar
+*-assembly-*.jar
 workspaces/*.mllt/*.csv
