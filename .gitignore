@@ -9,3 +9,4 @@ project/boot/
 /.bsp/
 *-assembly-*.jar
 workspaces/*.mllt/*.csv
+pico_stuff/.vscode
