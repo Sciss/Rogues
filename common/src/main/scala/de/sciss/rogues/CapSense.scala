@@ -6,6 +6,7 @@ import com.pi4j.io.gpio.digital.{DigitalInput, DigitalOutput, PullResistance}
 
 import java.util.concurrent.TimeUnit
 
+/** Attempt to use capacitive sensing on the Pi 4. Abandoned */
 object CapSense:
   def main(args: Array[String]): Unit = run()
 
