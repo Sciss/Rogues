@@ -98,10 +98,16 @@ sudo cmake --build . --config Release --target install
 
 ```
 
-## run on the Raspberry Pi
+## access TTL-to-USB via tinyUSB0 on Linux
 
-...
+To avoid root requirement, add user to dialout group:
 
-## IPs
+    sudo usermod -a -G dialout $USER
 
-## Cabling and setup
+Prepare reading, setting speed etc.
+
+    stty -F /dev/ttyUSB0 speed 115200 cs8 -cstopb -parenb -echo
+
+Dump output:
+
+    cat /dev/ttyUSB0
