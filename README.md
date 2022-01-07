@@ -111,3 +111,7 @@ Prepare reading, setting speed etc.
 Dump output:
 
     cat /dev/ttyUSB0
+
+Check if other process accesses the USB:
+
+    lsof /dev/ttyUSB0

@@ -45,7 +45,9 @@ lazy val common = project.in(file("common"))
       "de.sciss"      %% "swingplus"                % deps.common.swingPlus,  // user interface
       "net.harawata"  %  "appdirs"                  % deps.common.appDirs,    // finding standard directories
       "org.rogach"    %% "scallop"                  % deps.common.scallop,    // command line option parsing
+      "org.hid4java"  %  "hid4java"                 % deps.common.hid4java,   // USB HID access
     ),
+    resolvers += Resolver.sonatypeRepo("snapshots"),  // needed for hid4java
     buildInfoPackage := "de.sciss.rogues",
   )
 
@@ -53,6 +55,7 @@ lazy val deps = new {
   val common = new {
     val appDirs   = "1.2.1"
     val fileUtil  = "1.1.5"
+    val hid4java  = "develop-20201104.172733-8" // stable: "0.7.0"
     val model     = "0.3.5"
     val numbers   = "0.2.1"
     val pi4j      = "2.1.0"
