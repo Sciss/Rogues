@@ -115,3 +115,4 @@ Dump output:
 Check if other process accesses the USB:
 
     lsof /dev/ttyUSB0
+
