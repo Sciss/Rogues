@@ -36,16 +36,17 @@ lazy val common = project.in(file("common"))
     name := s"$baseName-common",
     description := "Common code",
     libraryDependencies ++= Seq(
-      "com.pi4j"      %  "pi4j-core"                % deps.common.pi4j,       // GPIO control
-      "com.pi4j"      %  "pi4j-plugin-raspberrypi"  % deps.common.pi4j,       // GPIO control
-      "com.pi4j"      %  "pi4j-plugin-pigpio"       % deps.common.pi4j,       // GPIO control
-      "de.sciss"      %% "fileutil"                 % deps.common.fileUtil,   // utility functions
-      "de.sciss"      %% "model"                    % deps.common.model,      // events
-      "de.sciss"      %% "numbers"                  % deps.common.numbers,    // numeric utilities
-      "de.sciss"      %% "swingplus"                % deps.common.swingPlus,  // user interface
-      "net.harawata"  %  "appdirs"                  % deps.common.appDirs,    // finding standard directories
-      "org.rogach"    %% "scallop"                  % deps.common.scallop,    // command line option parsing
-      "org.hid4java"  %  "hid4java"                 % deps.common.hid4java,   // USB HID access
+      "com.pi4j"      %  "pi4j-core"                % deps.common.pi4j,         // GPIO control
+      "com.pi4j"      %  "pi4j-plugin-raspberrypi"  % deps.common.pi4j,         // GPIO control
+      "com.pi4j"      %  "pi4j-plugin-pigpio"       % deps.common.pi4j,         // GPIO control
+      "de.sciss"      %% "fileutil"                 % deps.common.fileUtil,     // utility functions
+      "de.sciss"      %% "model"                    % deps.common.model,        // events
+      "de.sciss"      %% "numbers"                  % deps.common.numbers,      // numeric utilities
+      "de.sciss"      %% "swingplus"                % deps.common.swingPlus,    // user interface
+      "net.harawata"  %  "appdirs"                  % deps.common.appDirs,      // finding standard directories
+      "org.rogach"    %% "scallop"                  % deps.common.scallop,      // command line option parsing
+      "org.hid4java"  %  "hid4java"                 % deps.common.hid4java,     // USB HID access
+      "com.fazecast"  %  "jSerialComm"              % deps.common.jSerialComm,  // Serial port reading
     ),
     resolvers += Resolver.sonatypeRepo("snapshots"),  // needed for hid4java
     buildInfoPackage := "de.sciss.rogues",
@@ -53,14 +54,15 @@ lazy val common = project.in(file("common"))
 
 lazy val deps = new {
   val common = new {
-    val appDirs   = "1.2.1"
-    val fileUtil  = "1.1.5"
-    val hid4java  = "develop-20201104.172733-8" // stable: "0.7.0"
-    val model     = "0.3.5"
-    val numbers   = "0.2.1"
-    val pi4j      = "2.1.0"
-    val scallop   = "4.1.0"
-    val swingPlus = "0.5.0"
+    val appDirs     = "1.2.1"
+    val fileUtil    = "1.1.5"
+    val hid4java    = "develop-20201104.172733-8" // stable: "0.7.0"
+    val jSerialComm = "2.8.0"
+    val model       = "0.3.5"
+    val numbers     = "0.2.1"
+    val pi4j        = "2.1.0"
+    val scallop     = "4.1.0"
+    val swingPlus   = "0.5.0"
   }
 }
 
