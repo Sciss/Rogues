@@ -14,8 +14,8 @@ led.value = False
 time.sleep(0.5)
 
 # Create the I2C bus
-pinSCA = board.GP16
-pinSCL = board.GP17
+pinSCA = board.GP20 # GP16
+pinSCL = board.GP21 # GP17
 i2c = busio.I2C(scl = pinSCL, sda = pinSCA)
 
 # Create the ADC object using the I2C bus
