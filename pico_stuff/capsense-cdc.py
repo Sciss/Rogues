@@ -5,10 +5,29 @@ import touchio
 import busio
 import usb_cdc
 
-touchThresholdsAdd  = [ 1880        , 720       , 720       , 720       , 720       , 720        ]
-touchPins           = [ board.GP0   , board.GP2 , board.GP4 , board.GP6 , board.GP8 , board.GP10 ]
-ledPins             = [ board.LED   , board.GP15, None      , None      , None      , None       ]
-numTouch = 6 # touchPins.size
+ledInt = digitalio.DigitalInOut(board.LED)
+ledInt.direction = digitalio.Direction.OUTPUT
+
+BLA = 0
+while BLA < 2:
+    ledInt.value = True
+    time.sleep(0.25)
+    ledInt.value = False
+    time.sleep(0.25)
+    BLA += 1
+
+# touchThresholdsAdd  = [ 1880        , 720       , 720       , 720       , 720       , 720        ]
+touchThresholds     = [ 1800        , 1700       , 1700 , 1700       , 1700       , 1700        ]
+# touchPins           = [ board.GP0   , board.GP2 , board.GP4 , board.GP6 , board.GP8 , board.GP10 ]
+touchPins           = [ board.GP1   , board.GP2 , board.GP4 , board.GP9 , board.GP10 , board.GP12 ]
+# ledPins             = [ board.LED   , board.GP15, None      , None      , None      , None       ]
+ledPins             = [ board.LED ,  board.GP5, board.GP13, None      , None      , None       ]
+numTouch = 6 # 6 # touchPins.size
+
+but1 = digitalio.DigitalInOut(board.GP7)
+but1.switch_to_input(pull=digitalio.Pull.UP) # they close to GND
+but2 = digitalio.DigitalInOut(board.GP15)
+but2.switch_to_input(pull=digitalio.Pull.UP) # they close to GND
 
 touchIns = []
 leds = []
@@ -16,24 +35,36 @@ touchVals = []
 for idx in range(numTouch):
     pin = touchPins[idx]
     touchIn = touchio.TouchIn(pin)
-    touchIn.threshold += touchThresholdsAdd[idx]
+    touchIn.threshold = touchThresholds[idx]
     touchIns.append(touchIn)
     ledPin = ledPins[idx]
     led = None
     if not (ledPin is None):
-        led = digitalio.DigitalInOut(ledPin)
-        led.direction = digitalio.Direction.OUTPUT
+        if ledPin == board.LED:
+            led = ledInt
+        else:
+            led = digitalio.DigitalInOut(ledPin)
+            led.direction = digitalio.Direction.OUTPUT
+            # led.value = True
+            # time.sleep(0.2)
+            # led.value = False
+
     leds.append(led)
     touchVals.append(0)
+
+ledInt.value = True
+time.sleep(0.5)
+ledInt.value = False
+time.sleep(0.5)
 
 # baudRate = 115200 # 9600
 # writer = busio.UART(tx=board.GP16, rx=board.GP17, baudrate=baudRate, bits=8, parity=None, stop=1) #  timeout: float = 1, receiver_buffer_size: int = 64
 writer = usb_cdc.data
 writer.write_timeout = None
 
-leds[0].value = True
+ledInt.value = True
 time.sleep(0.5)
-leds[0].value = False
+ledInt.value = False
 time.sleep(0.5)
 
 # for some reason binary reception is not good unless we ensure
@@ -52,9 +83,15 @@ while True:
     for idx in range(numTouch):
         touch    = touchIns[idx]
         touchVal = touch.raw_value
-        touched  = touchVal > touch.threshold
+        thresh   = touchThresholds[idx]
+        touched  = touchVal > thresh # touch.threshold
         led      = leds[idx]
-        if not (ledPin is None):
+        if not (led is None):
+            # if idx == 0:
+            #     led.value = not but1.value
+            # elif idx == 1:
+            #     led.value = not but2.value
+            # else:
             led.value = touched
             
         senseHi  = (touchVal >> 7) & 0b1111111

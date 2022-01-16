@@ -17,6 +17,8 @@ Builds with sbt against Scala 3. See options: `sbt 'common/run --help'`. E.g.
 
 ## cap test
 
+__OBSOLETE__
+
 pigpio must be installed first: http://abyz.me.uk/rpi/pigpio/download.html
 
     git clone https://github.com/joan2937/pigpio.git
@@ -116,3 +118,8 @@ Check if other process accesses the USB:
 
     lsof /dev/ttyUSB0
 
+Running Python REPL in the terminal:
+
+    screen /dev/ttyACM0 115200
+
+(You may need to `sudo apt install screen`)
