@@ -1,0 +1,4 @@
+(fp_lib_table
+  (lib (name MCU_RaspberryPi_and_Boards)(type KiCad)(uri "/home/hhrutz/Documents/devel/KiCad-RP-Pico/RP-Pico Libraries/MCU_RaspberryPi_and_Boards.pretty")(options "")(descr ""))
+  (lib (name rogue_sensors)(type KiCad)(uri ${KIPRJMOD}/rogue_sensors.pretty)(options "")(descr ""))
+)
