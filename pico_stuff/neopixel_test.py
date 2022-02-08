@@ -26,7 +26,7 @@ if (not butWait.value):
 
 # On CircuitPlayground Express, and boards with built in status NeoPixel -> board.NEOPIXEL
 # Otherwise choose an open pin connected to the Data In of the NeoPixel strip, i.e. board.D1
-pixel_pin = board.GP18
+pixel_pin = board.GP17 # GP18
 
 # The number of NeoPixels
 num_pixels = 1
