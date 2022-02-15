@@ -23,6 +23,9 @@ if (not butWait.value):
         ledInt.value = False
         time.sleep(0.4)
 
+butAux = digitalio.DigitalInOut(board.GP14)
+butAux.switch_to_input(pull=digitalio.Pull.UP) # they close to GND
+
 ledExt1 = digitalio.DigitalInOut(board.GP0)
 ledExt1.direction = digitalio.Direction.OUTPUT
 ledExt2 = digitalio.DigitalInOut(board.GP1)
@@ -75,11 +78,11 @@ while True:
         ldr_ch4.value, ldr_ch4.voltage, ldr_ch5.value, ldr_ch5.voltage, ldr_ch6.value, ldr_ch6.voltage
     ))
 
-    time.sleep(0.2)
-    ledExt1.value = True
-    time.sleep(0.1)
-    ledExt1.value = False
-    time.sleep(0.2)
+    # time.sleep(0.2)
+    # ledInt.value = True
+    # time.sleep(0.1)
+    # ledInt.value = False
+    # time.sleep(0.2)
 
 #    print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format(
 #        cap_ch1.raw_value, cap_ch2.raw_value, cap_ch3.raw_value, cap_ch4.raw_value, cap_ch5.raw_value, cap_ch6.raw_value
@@ -89,8 +92,18 @@ while True:
         cap_ch1.raw_value #, cap_ch2.raw_value, cap_ch3.raw_value, cap_ch4.raw_value, cap_ch5.raw_value, cap_ch6.raw_value
     ))
 
-    time.sleep(0.2)
-    ledExt2.value = True
-    time.sleep(0.1)
-    ledExt2.value = False
-    time.sleep(0.2)
+    time.sleep(0.225)
+    ledInt.value = True
+    time.sleep(0.05)
+    ledInt.value = False
+    time.sleep(0.225)
+
+    if (not butWait.value):
+        ledExt1.value = True
+        time.sleep(0.5)
+        ledExt1.value = False
+
+    if (not butAux.value):
+        ledExt2.value = True
+        time.sleep(0.5)
+        ledExt2.value = False
