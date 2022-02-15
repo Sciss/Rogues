@@ -26,6 +26,9 @@ if (not butWait.value):
 butAux = digitalio.DigitalInOut(board.GP14)
 butAux.switch_to_input(pull=digitalio.Pull.UP) # they close to GND
 
+butOff = digitalio.DigitalInOut(board.GP13)
+butOff.switch_to_input(pull=digitalio.Pull.UP) # they close to GND
+
 ledExt1 = digitalio.DigitalInOut(board.GP0)
 ledExt1.direction = digitalio.Direction.OUTPUT
 ledExt2 = digitalio.DigitalInOut(board.GP1)
@@ -107,3 +110,8 @@ while True:
         ledExt2.value = True
         time.sleep(0.5)
         ledExt2.value = False
+
+    if (not butOff.value):
+        ledInt.value = True
+        time.sleep(0.5)
+        ledInt.value = False
