@@ -83,7 +83,7 @@ while True:
 
     print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format(
         cap_ch1.raw_value, cap_ch2.raw_value, cap_ch3.raw_value, cap_ch4.raw_value, cap_ch5.raw_value, cap_ch6.raw_value
-    )
+    ))
 
     time.sleep(0.2)
     ledExt2.value = True
