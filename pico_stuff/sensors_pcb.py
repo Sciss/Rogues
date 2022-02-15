@@ -4,6 +4,7 @@ import busio
 import digitalio
 import adafruit_ads1x15.ads1115 as ADS
 import touchio
+import neopixel
 # import usb_cdc
 from adafruit_ads1x15.analog_in import AnalogIn
 
@@ -75,6 +76,35 @@ time.sleep(0.5)
 
 print("{:>5}\t{:>5}".format('raw', 'v'))
 
+# On CircuitPlayground Express, and boards with built in status NeoPixel -> board.NEOPIXEL
+# Otherwise choose an open pin connected to the Data In of the NeoPixel strip, i.e. board.D1
+pixel_pin = board.GP16 # GP18
+
+# The number of NeoPixels
+num_pixels = 1
+
+# The order of the pixel colors - RGB or GRB. Some NeoPixels have red and green reversed!
+# For RGBW NeoPixels, simply change the ORDER to RGBW or GRBW.
+ORDER = neopixel.GRB
+
+pixels = neopixel.NeoPixel(
+    pixel_pin, num_pixels, brightness=0.2, auto_write=False, pixel_order=ORDER
+)
+
+ledInt.value = True
+time.sleep(0.5)
+ledInt.value = False
+time.sleep(0.5)
+
+numColors  = 4
+colorRed   = [255, 0, 0, 128]
+colorGreen = [0, 255, 0, 128]
+colorBlue  = [0, 0, 255, 128]
+colorIdx   = 0
+
+pixels.fill((0, 0, 0))
+pixels.show()
+
 while True:
     print("{:>5}\t{:>5.3f}   {:>5}\t{:>5.3f}   {:>5}\t{:>5.3f} | {:>5}\t{:>5.3f}   {:>5}\t{:>5.3f}   {:>5}\t{:>5.3f}".format(
         ldr_ch1.value, ldr_ch1.voltage, ldr_ch2.value, ldr_ch2.voltage, ldr_ch3.value, ldr_ch3.voltage,
@@ -107,11 +137,17 @@ while True:
         ledExt1.value = False
 
     if (not butAux.value):
-        ledExt2.value = True
-        time.sleep(0.5)
-        ledExt2.value = False
+        # ledExt2.value = True
+        # time.sleep(0.5)
+        # ledExt2.value = False
+        pixels.fill((colorRed(colorIdx), colorGreen(colorIdx), colorBlue(colorIdx)))
+        colorIdx = (colorIdx + 1) % numColors
+        # Uncomment this line if you have RGBW/GRBW NeoPixels
+        # pixels.fill((255, 0, 0, 0))
+        pixels.show()
 
     if (not butOff.value):
         ledInt.value = True
         time.sleep(0.5)
         ledInt.value = False
+        
