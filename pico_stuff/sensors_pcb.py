@@ -140,7 +140,7 @@ while True:
         # ledExt2.value = True
         # time.sleep(0.5)
         # ledExt2.value = False
-        pixels.fill((colorRed(colorIdx), colorGreen(colorIdx), colorBlue(colorIdx)))
+        pixels.fill((colorRed[colorIdx], colorGreen[colorIdx], colorBlue[colorIdx]))
         colorIdx = (colorIdx + 1) % numColors
         # Uncomment this line if you have RGBW/GRBW NeoPixels
         # pixels.fill((255, 0, 0, 0))
