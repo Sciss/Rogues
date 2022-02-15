@@ -62,12 +62,12 @@ ledInt.value = False
 time.sleep(0.5)
 
 cap_ch1 = touchio.TouchIn(board.GP2)
-# cap_ch2 = touchio.TouchIn(board.GP3)
-# cap_ch3 = touchio.TouchIn(board.GP4)
+cap_ch2 = touchio.TouchIn(board.GP3)
+cap_ch3 = touchio.TouchIn(board.GP4)
 
-# cap_ch4 = touchio.TouchIn(board.GP6)
-# cap_ch5 = touchio.TouchIn(board.GP7)
-# cap_ch6 = touchio.TouchIn(board.GP8)
+cap_ch4 = touchio.TouchIn(board.GP6)
+cap_ch5 = touchio.TouchIn(board.GP7)
+cap_ch6 = touchio.TouchIn(board.GP8)
 
 ledInt.value = True
 time.sleep(0.5)
@@ -117,13 +117,13 @@ while True:
     # ledInt.value = False
     # time.sleep(0.2)
 
-#    print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format(
-#        cap_ch1.raw_value, cap_ch2.raw_value, cap_ch3.raw_value, cap_ch4.raw_value, cap_ch5.raw_value, cap_ch6.raw_value
-#    ))
-
-    print("{:>5}".format(
-        cap_ch1.raw_value #, cap_ch2.raw_value, cap_ch3.raw_value, cap_ch4.raw_value, cap_ch5.raw_value, cap_ch6.raw_value
+    print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format(
+        cap_ch1.raw_value, cap_ch2.raw_value, cap_ch3.raw_value, cap_ch4.raw_value, cap_ch5.raw_value, cap_ch6.raw_value
     ))
+
+    # print("{:>5}".format(
+    #     cap_ch1.raw_value #, cap_ch2.raw_value, cap_ch3.raw_value, cap_ch4.raw_value, cap_ch5.raw_value, cap_ch6.raw_value
+    # ))
 
     time.sleep(0.225)
     ledInt.value = True
