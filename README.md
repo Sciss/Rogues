@@ -4,7 +4,7 @@
 
 This repository contains code for an ongoing art project. See [Research Catalogue](https://www.researchcatalogue.net/view/1437680/1437681).
 
-(C)opyright 2021 by Hanns Holger Rutz. All rights reserved. This project is released under the
+(C)opyright 2021–2022 by Hanns Holger Rutz. All rights reserved. This project is released under the
 [GNU Affero General Public License](https://github.comt/Sciss/Rogues/blob/main/LICENSE) v3+ and
 comes with absolutely no warranties.
 To contact the author, send an e-mail to `contact at sciss.de`.
@@ -123,3 +123,36 @@ Running Python REPL in the terminal:
     screen /dev/ttyACM0 115200
 
 (You may need to `sudo apt install screen`)
+
+## Pn532 tests
+
+https://www.waveshare.com/wiki/PN532_NFC_HAT
+
+Code:
+
+https://www.waveshare.com/w/upload/6/67/Pn532-nfc-hat-code.7z
+
+To unzip: 
+
+    sudo apt install p7zip-full
+    mkdir out
+    cd out
+    7z x ../Pn532-nfc-hat-code.7z
+
+Set both jumpers L0 and L1 to L(ow), to enable UART. Connect the first four pins
+to 3v3 / GND / Rx / Tx. Flip Tx/Rx with respect to the TTL-to-USB adapter.
+
+When connected via UART to USB:
+
+```
+pn532 = PN532_UART(debug=False, reset=20, dev='/dev/ttyUSB0')
+```
+
+## Install HyperPixel
+
+    git clone https://github.com/pimoroni/hyperpixel2r
+
+    cd hyperpixel2r
+    sudo ./install.sh
+
+Needs Raspbian Buster not Bullseye!
