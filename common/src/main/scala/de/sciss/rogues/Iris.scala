@@ -136,25 +136,42 @@ object Iris:
     private val NumBlades   = 6
     private val BladeAngle  = 2 * Pi / NumBlades
 
-    private val baseShape = {
-      val r = new Path2D.Float()
+    private lazy val baseShapeOLD = {
+      val p = new Path2D.Float()
       val scale = extent / 20f
       val y0 = -2f * scale
       val wh = 4f * scale
       val w  = 2f * wh
       val h1 = 4f * scale
       val y1 = y0 + h1
-//      val h2 = 7f * scale
+      //      val h2 = 7f * scale
       val h2 = wh / math.tan(BladeAngle/2)
-//      println(s"h2 = ${h2 / scale}")
+      //      println(s"h2 = ${h2 / scale}")
       val y2 = y1 + h2
-      r.moveTo(-wh, y0)
-      r.lineTo(-wh, y1)
-      r.lineTo(0f, y2)
-      r.lineTo(wh , y1)
-      r.lineTo(wh, y0)
-      r.closePath()
-      r
+      p.moveTo(-wh, y0)
+      p.lineTo(-wh, y1)
+      p.lineTo(0f, y2)
+      p.lineTo(wh , y1)
+      p.lineTo(wh, y0)
+      p.closePath()
+      p
+    }
+
+    private val radius = extent / 2.0
+    private val triBaseH = {
+      val angH  = BladeAngle / 2  // half the angle of the blade
+      -radius / (1.0 - (1.0 / math.tan(angH))) // distance to the rotating axis, equals half base of triangle
+    }
+
+    println(s"triBaseH $triBaseH")
+
+    private val baseShape = {
+      val p     = new Path2D.Float()
+      p.moveTo(-triBaseH, -triBaseH)
+      p.lineTo(0.0, radius)
+      p.lineTo(+triBaseH, -triBaseH)
+      p.closePath()
+      p
     }
 
     private var direction   = 0
@@ -165,7 +182,7 @@ object Iris:
     private val RotSpeed    = 2.0e-5
     private val MinRot      = 0.0
     private val MaxRot      = 45 * Pi / 180
-    private val WaitChange  = 4.0 * 1000
+    private val WaitChange  = 3.0 * 1000
 
     override protected def paintComponent(g: Graphics2D): Unit =
       val p   = peer
@@ -183,9 +200,9 @@ object Iris:
       val atOrig = g.getTransform
       for (i <- 0 until NumBlades) {
         g.rotate(i * BladeAngle, cx, cy)
-        g.translate(cx, cy * 0.105) // XXX TODO exact value
-        val rotAng = 60 * Pi / 180 // MinRot // MaxRot // 45 * Pi / 180
-        val atRot = AffineTransform.getRotateInstance(rotAng)
+        g.translate(cx, 0.0) // cy * 0.105) // XXX TODO exact value
+//        val rotAng = 60 * Pi / 180 // MinRot // MaxRot // 45 * Pi / 180
+        val atRot = AffineTransform.getRotateInstance(rotAng, 0.0, -342)  // XXX TODO why the anchor is not triBaseH
         val shp = atRot.createTransformedShape(baseShape)
         g.setColor(Color.black)
         g.fill(shp)
@@ -194,8 +211,8 @@ object Iris:
         g.setTransform(atOrig)
       }
 
-      g.setColor(Color.green)
-      g.drawOval(0, 0, w, h)
+//      g.setColor(Color.green)
+//      g.drawOval(0, 0, w, h)
 
       val t1 = System.currentTimeMillis()
       if direction == 0 then
