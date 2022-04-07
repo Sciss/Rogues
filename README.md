@@ -13,7 +13,9 @@ To contact the author, send an e-mail to `contact at sciss.de`.
 
 Builds with sbt against Scala 3. See options: `sbt 'common/run --help'`. E.g.
 
-    sbt 'common/run-main de.sciss.rogues.SteinerChain --margin 0 --radius 240 --full-screen --hide-envelope'
+    sbt 'common/runMain de.sciss.rogues.SteinerChain --margin 0 --radius 240 --full-screen --hide-envelope'
+
+    sbt 'common/runMain de.sciss.rogues.Iris --full-screen'
 
 ## cap test
 
@@ -161,4 +163,4 @@ Needs Raspbian Buster not Bullseye!
 
 - 192.168.77.35
 - 192.168.77.40
-- 192.168.77.45
+- 192.168.77.45 "eve"

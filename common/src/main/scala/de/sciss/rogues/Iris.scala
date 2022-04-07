@@ -27,15 +27,13 @@ import scala.swing.{Color, Component, Dimension, Graphics2D, Image, MainFrame, P
 
 object Iris:
   case class Config(
-                     numCircles   : Int     = 3,
+//                     numCircles   : Int     = 3,
                      radius       : Int     = 240,
                      xOffset      : Double  = -0.25,
                      yOffset      : Double  = 0.0,
                      margin       : Int     = 60,
                      refreshPeriod: Int     = 20,
-                     cyclePeriod  : Double  = 10.0,
                      fullScreen   : Boolean = false,
-                     drawEnvelope : Boolean = true,
                    )
 
   def main(args: Array[String]): Unit =
@@ -45,10 +43,10 @@ object Iris:
       printedName = "Iris"
       private val default = Config()
 
-      val numCircles: Opt[Int] = opt(default = Some(default.numCircles),
-        descr = s"Number of moons, 3 or larger (default: ${default.numCircles}).",
-        validate = x => x >= 3
-      )
+//      val numCircles: Opt[Int] = opt(default = Some(default.numCircles),
+//        descr = s"Number of moons, 3 or larger (default: ${default.numCircles}).",
+//        validate = x => x >= 3
+//      )
       val radius: Opt[Int] = opt(default = Some(default.radius),
         descr = s"Envelope radius, greater than zero (default: ${default.radius}).",
         validate = x => x > 0,
@@ -69,28 +67,28 @@ object Iris:
         descr = s"Window refresh period in milliseconds (default: ${default.refreshPeriod}).",
         validate = x => x > 0,
       )
-      val cyclePeriod: Opt[Double] = opt(default = Some(default.cyclePeriod),
-        descr = s"Animation cycle period in seconds (default: ${default.cyclePeriod}).",
-        validate = x => x > 0.0,
-      )
+//      val cyclePeriod: Opt[Double] = opt(default = Some(default.cyclePeriod),
+//        descr = s"Animation cycle period in seconds (default: ${default.cyclePeriod}).",
+//        validate = x => x > 0.0,
+//      )
       val fullScreen: Opt[Boolean] = toggle(default = Some(default.fullScreen),
         descrYes = "Put window into full-screen mode.",
       )
-      val hideEnvelope: Opt[Boolean] = toggle(default = Some(!default.drawEnvelope),
-        descrYes = "Do not draw enveloping circle.",
-      )
+//      val hideEnvelope: Opt[Boolean] = toggle(default = Some(!default.drawEnvelope),
+//        descrYes = "Do not draw enveloping circle.",
+//      )
 
       verify()
       val config: Config = Config(
-        numCircles   = numCircles   (),
+//        numCircles   = numCircles   (),
         radius       = radius       (),
         xOffset      = xOffset      (),
         yOffset      = yOffset      (),
         margin       = margin       (),
         refreshPeriod= refreshPeriod(),
-        cyclePeriod  = cyclePeriod  (),
+//        cyclePeriod  = cyclePeriod  (),
         fullScreen   = fullScreen   (),
-        drawEnvelope = !hideEnvelope(),
+//        drawEnvelope = !hideEnvelope(),
       )
     end p
 
@@ -99,8 +97,7 @@ object Iris:
 
   def run(c: Config): Unit =
     val extent  = (c.radius + c.margin) * 2
-    val canvas  = new Canvas(extent = extent,
-      cyclePeriod = c.cyclePeriod, drawEnvelope = c.drawEnvelope)
+    val canvas  = new Canvas(extent = extent)
 
     new MainFrame:
       if c.fullScreen then
@@ -120,10 +117,13 @@ object Iris:
       open()
       canvas.requestFocus()
 
-    val t = new Timer(c.refreshPeriod, _ => canvas.repaint())
+    val t = new Timer(c.refreshPeriod, { _ =>
+      canvas.repaint()
+      canvas.toolkit.sync()
+    })
     t.start()
 
-  class Canvas(extent: Int, cyclePeriod: Double, drawEnvelope: Boolean)
+  class Canvas(extent: Int)
     extends Component:
 
     private val circle      = new Ellipse2D.Double()
@@ -184,7 +184,7 @@ object Iris:
       for (i <- 0 until NumBlades) {
         g.rotate(i * BladeAngle, cx, cy)
         g.translate(cx, cy * 0.105) // XXX TODO exact value
-        // val rotAng = 45 * Pi / 180
+        val rotAng = 60 * Pi / 180 // MinRot // MaxRot // 45 * Pi / 180
         val atRot = AffineTransform.getRotateInstance(rotAng)
         val shp = atRot.createTransformedShape(baseShape)
         g.setColor(Color.black)
@@ -193,6 +193,9 @@ object Iris:
         g.draw(shp)
         g.setTransform(atOrig)
       }
+
+      g.setColor(Color.green)
+      g.drawOval(0, 0, w, h)
 
       val t1 = System.currentTimeMillis()
       if direction == 0 then
@@ -204,6 +207,7 @@ object Iris:
         rotAng += direction * (t1 - tM) * RotSpeed
         if rotAng <= MinRot || rotAng >= MaxRot then
           rotAng    = math.max(MinRot, math.min(MaxRot, rotAng))
+          tM        = t1
           direction = 0
           closed    = !closed
         end if
