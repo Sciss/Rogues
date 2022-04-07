@@ -156,3 +156,9 @@ pn532 = PN532_UART(debug=False, reset=20, dev='/dev/ttyUSB0')
     sudo ./install.sh
 
 Needs Raspbian Buster not Bullseye!
+
+## Pis
+
+- 192.168.77.35
+- 192.168.77.40
+- 192.168.77.45
