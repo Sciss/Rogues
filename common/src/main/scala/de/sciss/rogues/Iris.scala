@@ -27,7 +27,7 @@ import scala.swing.{Color, Component, Dimension, Graphics2D, Image, MainFrame, P
 
 object Iris:
   case class Config(
-//                     numCircles   : Int     = 3,
+                     numBlades    : Int     = 6,
                      radius       : Int     = 240,
                      xOffset      : Double  = -0.25,
                      yOffset      : Double  = 0.0,
@@ -43,10 +43,10 @@ object Iris:
       printedName = "Iris"
       private val default = Config()
 
-//      val numCircles: Opt[Int] = opt(default = Some(default.numCircles),
-//        descr = s"Number of moons, 3 or larger (default: ${default.numCircles}).",
-//        validate = x => x >= 3
-//      )
+      val numBlades: Opt[Int] = opt(default = Some(default.numBlades),
+        descr = s"Number of blades, 3 or larger (default: ${default.numBlades}).",
+        validate = x => x >= 3
+      )
       val radius: Opt[Int] = opt(default = Some(default.radius),
         descr = s"Envelope radius, greater than zero (default: ${default.radius}).",
         validate = x => x > 0,
@@ -80,7 +80,7 @@ object Iris:
 
       verify()
       val config: Config = Config(
-//        numCircles   = numCircles   (),
+        numBlades    = numBlades    (),
         radius       = radius       (),
         xOffset      = xOffset      (),
         yOffset      = yOffset      (),
@@ -97,7 +97,7 @@ object Iris:
 
   def run(c: Config): Unit =
     val extent  = (c.radius + c.margin) * 2
-    val canvas  = new Canvas(extent = extent)
+    val canvas  = new Canvas(extent = extent, numBlades = c.numBlades)
 
     new MainFrame:
       if c.fullScreen then
@@ -123,7 +123,7 @@ object Iris:
     })
     t.start()
 
-  class Canvas(extent: Int)
+  class Canvas(extent: Int, numBlades: Int)
     extends Component:
 
     private val circle      = new Ellipse2D.Double()
@@ -133,7 +133,7 @@ object Iris:
     opaque = true
     preferredSize = new Dimension(extent, extent)
 
-    private val NumBlades   = 6
+    private val NumBlades   = numBlades // 6
     private val BladeAngle  = 2 * Pi / NumBlades
 
     private lazy val baseShapeOLD = {
@@ -158,10 +158,13 @@ object Iris:
     }
 
     private val radius = extent / 2.0
+    private val BladeAngleH = BladeAngle / 2
     private val triBaseH = {
-      val angH  = BladeAngle / 2  // half the angle of the blade
-      -radius / (1.0 - (1.0 / math.tan(angH))) // distance to the rotating axis, equals half base of triangle
+      -radius / (1.0 - (1.0 / math.tan(BladeAngleH))) // distance to the rotating axis, equals half base of triangle
     }
+//    private val triBaseH = 0.0
+
+    private val ExtTan = extent * math.tan(BladeAngleH)
 
     println(s"triBaseH $triBaseH")
 
@@ -177,11 +180,11 @@ object Iris:
     private var direction   = 0
     private var tM          = t0
     private var closed      = true
-    private var rotAng      = 0.0
+    private var position    = 0.0
 
-    private val RotSpeed    = 2.0e-5
+    private val RotSpeed    = 1.0e-5 // 2.0e-5
     private val MinRot      = 0.0
-    private val MaxRot      = 45 * Pi / 180
+    private val MaxRot      = 60 /*45*/ * Pi / 180
     private val WaitChange  = 3.0 * 1000
 
     override protected def paintComponent(g: Graphics2D): Unit =
@@ -198,11 +201,18 @@ object Iris:
       g.setRenderingHint(RenderingHints.KEY_INTERPOLATION , RenderingHints.VALUE_INTERPOLATION_BICUBIC)
 
       val atOrig = g.getTransform
+      val posH = position * 0.5
       for (i <- 0 until NumBlades) {
-        g.rotate(i * BladeAngle, cx, cy)
+//        val posRot = position.linLin(0.0, 1.0, 0.0, -15.0 * Pi / 180)
+        g.rotate((i - posH) * BladeAngle, cx, cy)
         g.translate(cx, 0.0) // cy * 0.105) // XXX TODO exact value
 //        val rotAng = 60 * Pi / 180 // MinRot // MaxRot // 45 * Pi / 180
-        val atRot = AffineTransform.getRotateInstance(rotAng, 0.0, -342)  // XXX TODO why the anchor is not triBaseH
+//        val rotAng = position.linLin(0.0, 1.0, MinRot, MaxRot)
+//        val anchX = position.linLin(0.0, 1.0, 0.0,  20.0 * 4)
+//        val anchY = position.linLin(0.0, 1.0, 0.0, -20.0 * 2)
+        val posTx = position.linLin(0.0, 1.0, 0.0, extent * 0.5773502691896257)
+//        val atRot = AffineTransform.getRotateInstance(rotAng, anchX, anchY)  // XXX TODO why the anchor is not triBaseH
+        val atRot = AffineTransform.getTranslateInstance(posTx, 0.0)
         val shp = atRot.createTransformedShape(baseShape)
         g.setColor(Color.black)
         g.fill(shp)
@@ -211,8 +221,8 @@ object Iris:
         g.setTransform(atOrig)
       }
 
-//      g.setColor(Color.green)
-//      g.drawOval(0, 0, w, h)
+      g.setColor(Color.green)
+      g.drawOval(0, 0, w, h)
 
       val t1 = System.currentTimeMillis()
       if direction == 0 then
@@ -221,9 +231,9 @@ object Iris:
           direction = if closed then -1 else +1
         end if
       else
-        rotAng += direction * (t1 - tM) * RotSpeed
-        if rotAng <= MinRot || rotAng >= MaxRot then
-          rotAng    = math.max(MinRot, math.min(MaxRot, rotAng))
+        position += direction * (t1 - tM) * RotSpeed
+        if position <= 0.0 || position >= 1.0 then
+          position  = position.clip(0.0, 1.0)
           tM        = t1
           direction = 0
           closed    = !closed

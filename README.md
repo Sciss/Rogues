@@ -15,7 +15,7 @@ Builds with sbt against Scala 3. See options: `sbt 'common/run --help'`. E.g.
 
     sbt 'common/runMain de.sciss.rogues.SteinerChain --margin 0 --radius 240 --full-screen --hide-envelope'
 
-    sbt 'common/runMain de.sciss.rogues.Iris --full-screen'
+    sbt 'common/runMain de.sciss.rogues.Iris --num-blades 7 --full-screen'
 
 ## cap test
 
