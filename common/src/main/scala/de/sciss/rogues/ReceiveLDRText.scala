@@ -74,11 +74,12 @@ object ReceiveLDRText:
       while !lineDone do
         val c = in.read()
         if c < 0 then {
-          println("Stream closed")
-          return
+          // asynchronous; not available
+          Thread.sleep(1)
+          // println("Stream closed")
+          // return
         }
-
-        if c == 10 then
+        else if c == 10 then
           lineDone = true
         else if !overflow then
           buf(bufOff) = c.toByte
