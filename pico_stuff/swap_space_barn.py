@@ -78,7 +78,7 @@ time.sleep(0.5)
 ledInt.value = False
 time.sleep(0.5)
 
-print("{:>5}\t{:>5}".format('raw', 'v'))
+print("Hello from swap space, v2.")
 
 # # On CircuitPlayground Express, and boards with built in status NeoPixel -> board.NEOPIXEL
 # # Otherwise choose an open pin connected to the Data In of the NeoPixel strip, i.e. board.D1
@@ -127,17 +127,17 @@ while True:
     #     ldr_ch4.value, ldr_ch5.value, ldr_ch6.value,
     # ))
     for si in range(numSensors):
-        value = sensors[si].value
-        b5      = value / 10000
+        value   = sensors[si].value
+        b5      = int(value / 10000)
         value   = value % 10000
         buf[si * 6 + 0] = b5 + 48
-        b4      = value / 1000
+        b4      = int(value / 1000)
         value   = value % 1000
         buf[si * 6 + 1] = b4 + 48
-        b3      = value / 100
+        b3      = int(value / 100)
         value   = value % 100
         buf[si * 6 + 2] = b3 + 48
-        b2      = value / 10
+        b2      = int(value / 10)
         value   = value % 10
         buf[si * 6 + 3] = b2 + 48
         b1      = value
@@ -173,6 +173,9 @@ while True:
     # time.sleep(0.05)
     # ledInt.value = False
     # time.sleep(0.225)
+
+    # print("Ping")
+    # time.sleep(0.2)
 
     # if (not butWait.value):
     #     ledExt1.value = True

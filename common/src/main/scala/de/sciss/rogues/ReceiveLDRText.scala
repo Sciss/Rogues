@@ -1,6 +1,7 @@
 package de.sciss.rogues
 
 import com.fazecast.jSerialComm.SerialPort
+import org.rogach.scallop.ScallopConf
 
 import java.io.{BufferedReader, FileInputStream, InputStream, InputStreamReader}
 import scala.swing.{Component, Dimension, Graphics2D, Label, MainFrame, Swing}
@@ -15,8 +16,34 @@ object ReceiveLDRText:
   val numSensors    = 6 // 2
   val sensorVals    = new Array[Int](numSensors)
 
+  case class Config(debug: Boolean = false, verbose: Boolean = false, device: String = defaultDevice)
+
   def main(args: Array[String]): Unit =
-    val device = if (args.length == 0) defaultDevice else args.head
+    object p extends ScallopConf(args):
+      import org.rogach.scallop.{ScallopOption => Opt, *}
+
+      printedName = "ReceiveLDRText"
+      private val default = Config()
+
+      val debug: Opt[Boolean] = toggle(default = Some(default.debug),
+        descrYes = "Debug operation.",
+      )
+      val verbose: Opt[Boolean] = toggle(default = Some(default.verbose),
+        descrYes = "Verbose operation.",
+      )
+      val device: Opt[String] = opt(default = Some(default.device),
+        descr = s"Serial device name (default: ${default.device}).",
+      )
+
+      verify()
+      val config: Config = Config(
+        debug     = debug   (),
+        verbose   = verbose (),
+        device    = device  (),
+      )
+    end p
+
+    implicit val c: Config = p.config
 
     lazy val lb: Component = new Component {
       preferredSize = new Dimension(520, 30 + numSensors * 10)
@@ -43,21 +70,23 @@ object ReceiveLDRText:
       f.pack().centerOnScreen()
       f.open()
     }
-    run(device) {
-      // val s = sensorVals.mkString("sensors: ", ", ", "")
+    run {
+      if c.verbose then
+        val s = sensorVals.mkString("sensors: ", ", ", "")
+        println(s)
       lb.repaint()
       lb.toolkit.sync()
     }
 
-  def run(device: String)(fun: => Unit): Unit =
+  def run(fun: => Unit)(implicit c: Config): Unit =
     val (port, in) = {
       val ports = SerialPort.getCommPorts()
-      val _port = ports.find(_.getSystemPortPath == device).getOrElse(sys.error(s"Device $device not found"))
+      val _port = ports.find(_.getSystemPortPath == c.device).getOrElse(sys.error(s"Device ${c.device} not found"))
       val opened = _port.openPort()
       val baudOk = _port.setBaudRate(baudRate)
       //      _port.setComPortTimeouts()
       if (!baudOk) println(s"BAUD RATE $baudRate IS NOT VALID")
-      require (opened, s"Could not open $device")
+      require (opened, s"Could not open ${c.device}")
       (_port, _port.getInputStreamWithSuppressedTimeoutExceptions /*getInputStream*/)
     }
     try
@@ -65,7 +94,7 @@ object ReceiveLDRText:
     finally
       port.closePort()
 
-  def runWith(in: InputStream)(fun: => Unit): Unit =
+  def runWith(in: InputStream)(fun: => Unit)(implicit c: Config): Unit =
     val bufSz = numSensors * 6
     val buf   = new Array[Byte](bufSz)
     while true do
@@ -77,8 +106,8 @@ object ReceiveLDRText:
         val c = in.read()
         if c < 0 then {
           // asynchronous; not available
-//          Thread.sleep(1)
-          Thread.`yield`()
+          Thread.sleep(1)
+//          Thread.`yield`()
           // println("Stream closed")
           // return
         }
@@ -92,11 +121,11 @@ object ReceiveLDRText:
             lineDone  = true
 
       val sLine = new String(buf, 0, bufOff, "UTF-8")
-      println(s"lineDone at $bufOff. overflow? $overflow. line is '$sLine'")
+      if c.debug then println(s"lineDone at $bufOff. overflow? $overflow. line is '$sLine'")
 
       if !overflow then
         val sArr = sLine.split(' ')
-        println(s"GOT ${sArr.length} VALUES")
+//        println(s"GOT ${sArr.length} VALUES")
         if sArr.length == numSensors then
           var t = 0
           while t < numSensors do
