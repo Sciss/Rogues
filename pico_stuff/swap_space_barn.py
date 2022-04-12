@@ -53,6 +53,9 @@ ldr_ch4 = AnalogIn(ads2, ADS.P0)
 ldr_ch5 = AnalogIn(ads2, ADS.P1)
 ldr_ch6 = AnalogIn(ads2, ADS.P2)
 
+numSensors = 6
+sensors = [ldr_ch1, ldr_ch2, ldr_ch3, ldr_ch4, ldr_ch5, ldr_ch6]
+
 # Create differential input between channel 0 and 1
 #chan = AnalogIn(ads, ADS.P0, ADS.P1)
 
@@ -107,11 +110,39 @@ time.sleep(0.5)
 
 ledCnt = 0
 
+writer = usb_cdc.data
+writer.write_timeout = None
+
+bufSz = numSensors * 6
+buf = bytearray(bufSz)
+for si in range(numSensors):
+    buf[si * 6 + 5] = 32 # space
+
+buf[bufSz - 1] = 10 # newline
+
 while True:
-    print("{} {} {} {} {} {}".format(
-        ldr_ch1.value, ldr_ch2.value, ldr_ch3.value,
-        ldr_ch4.value, ldr_ch5.value, ldr_ch6.value,
-    ))
+    # print("{} {} {} {} {} {}".format(
+    #     ldr_ch1.value, ldr_ch2.value, ldr_ch3.value,
+    #     ldr_ch4.value, ldr_ch5.value, ldr_ch6.value,
+    # ))
+    for si in range(numSensors):
+        value = sensors[si].value
+        b5      = value / 10000
+        value   = value % 10000
+        buf[si * 6 + 0] = b5 + 48
+        b4      = value / 1000
+        value   = value % 1000
+        buf[si * 6 + 1] = b4 + 48
+        b3      = value / 100
+        value   = value % 100
+        buf[si * 6 + 2] = b3 + 48
+        b2      = value / 10
+        value   = value % 10
+        buf[si * 6 + 3] = b2 + 48
+        b1      = value
+        buf[si * 6 + 4] = b1 + 48
+
+    writer.write(buf)
 
     time.sleep(0.1)
     ledCnt = ledCnt + 1

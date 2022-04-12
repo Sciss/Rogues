@@ -10,12 +10,14 @@ import scala.swing.{Component, Dimension, Graphics2D, Label, MainFrame, Swing}
  *  Reads ASCII text formatted lines of sensor 16-bit sensor values separated by space characters
  */
 object ReceiveLDRText:
-  val device      = "/dev/ttyACM0" // "/dev/ttyUSB0"
-  val baudRate    = 115200
-  val numSensors  = 6 // 2
-  val sensorVals  = new Array[Int](numSensors)
+  val defaultDevice = "/dev/ttyACM1" // "/dev/ttyUSB0"
+  val baudRate      = 115200
+  val numSensors    = 6 // 2
+  val sensorVals    = new Array[Int](numSensors)
 
   def main(args: Array[String]): Unit =
+    val device = if (args.length == 0) defaultDevice else args.head
+
     lazy val lb: Component = new Component {
       preferredSize = new Dimension(520, 30 + numSensors * 10)
 
@@ -41,13 +43,13 @@ object ReceiveLDRText:
       f.pack().centerOnScreen()
       f.open()
     }
-    run {
-      val s = sensorVals.mkString("sensors: ", ", ", "")
+    run(device) {
+      // val s = sensorVals.mkString("sensors: ", ", ", "")
       lb.repaint()
       lb.toolkit.sync()
     }
 
-  def run(fun: => Unit): Unit =
+  def run(device: String)(fun: => Unit): Unit =
     val (port, in) = {
       val ports = SerialPort.getCommPorts()
       val _port = ports.find(_.getSystemPortPath == device).getOrElse(sys.error(s"Device $device not found"))
