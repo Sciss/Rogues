@@ -108,7 +108,7 @@ time.sleep(0.5)
 ledCnt = 0
 
 while True:
-    print("{:>5} {:>5} {:>5} {:>5} {:>5} {:>5}".format(
+    print("{} {} {} {} {} {}".format(
         ldr_ch1.value, ldr_ch2.value, ldr_ch3.value,
         ldr_ch4.value, ldr_ch5.value, ldr_ch6.value,
     ))
