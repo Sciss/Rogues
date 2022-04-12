@@ -7,6 +7,7 @@ import touchio
 import neopixel
 # import usb_cdc
 from adafruit_ads1x15.analog_in import AnalogIn
+import usb_cdc
 
 # this file has pin layout like the PCB v1
 
