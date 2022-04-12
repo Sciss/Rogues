@@ -90,10 +90,10 @@ object ReceiveLDRText:
             lineDone  = true
 
       val sLine = new String(buf, 0, bufOff, "UTF-8")
-      // println(s"lineDone at $bufOff. overflow? $overflow. line is $sLine")
+      println(s"lineDone at $bufOff. overflow? $overflow. line is '$sLine'")
 
       if !overflow then
-        val sArr = sLine.trim.split(' ')
+        val sArr = sLine.split(' ')
         println(s"GOT ${sArr.length} VALUES")
         if sArr.length == numSensors then
           var t = 0
