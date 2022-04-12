@@ -63,6 +63,9 @@ object ReceiveLDRText:
   def runWith(in: InputStream)(fun: => Unit): Unit =
     val reader = new BufferedReader(new InputStreamReader(in))
     while true do
+      while in.available() == 0 do
+        Thread.sleep(1)
+
       val sArr = reader.readLine().trim.split(' ')
       if sArr.length == numSensors then
         var t = 0
