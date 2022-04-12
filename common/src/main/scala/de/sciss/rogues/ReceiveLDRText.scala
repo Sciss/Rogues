@@ -75,7 +75,8 @@ object ReceiveLDRText:
         val c = in.read()
         if c < 0 then {
           // asynchronous; not available
-          Thread.sleep(1)
+//          Thread.sleep(1)
+          Thread.`yield`()
           // println("Stream closed")
           // return
         }
@@ -89,7 +90,7 @@ object ReceiveLDRText:
             lineDone  = true
 
       val sLine = new String(buf, 0, bufOff, "UTF-8")
-      println(s"lineDone at $bufOff. overflow? $overflow. line is $sLine")
+      // println(s"lineDone at $bufOff. overflow? $overflow. line is $sLine")
 
       if !overflow then
         val sArr = sLine.trim.split(' ')
