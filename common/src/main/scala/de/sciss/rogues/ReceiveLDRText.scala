@@ -80,7 +80,10 @@ object ReceiveLDRText:
           buf(bufOff) = c.toByte
           bufOff += 1
           if bufOff == bufSz then
-            overflow = true
+            overflow  = true
+            lineDone  = true
+
+      println(s"lineDone at $bufOff. overflow? $overflow")
 
       if !overflow then
         val sLine = new String(buf, 0, bufOff, "UTF-8")
