@@ -10,7 +10,7 @@ import scala.swing.{Component, Dimension, Graphics2D, Label, MainFrame, Swing}
  *  Reads ASCII text formatted lines of sensor 16-bit sensor values separated by space characters
  */
 object ReceiveLDRText:
-  val device      = "/dev/ttyACM1" // "/dev/ttyUSB0"
+  val device      = "/dev/ttyACM0" // "/dev/ttyUSB0"
   val numSensors  = 6 // 2
   val sensorVals  = new Array[Int](numSensors)
 
@@ -63,8 +63,8 @@ object ReceiveLDRText:
   def runWith(in: InputStream)(fun: => Unit): Unit =
     val reader = new BufferedReader(new InputStreamReader(in))
     while true do
-      while in.available() == 0 do
-        Thread.sleep(1)
+//      while in.available() == 0 do
+//        Thread.sleep(1)
 
       val sArr = reader.readLine().trim.split(' ')
       if sArr.length == numSensors then
