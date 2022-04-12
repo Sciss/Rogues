@@ -73,7 +73,11 @@ object ReceiveLDRText:
 
       while !lineDone do
         val c = in.read()
-        if c < 0 then return
+        if c < 0 then {
+          println("Stream closed")
+          return
+        }
+
         if c == 10 then
           lineDone = true
         else if !overflow then
@@ -83,10 +87,10 @@ object ReceiveLDRText:
             overflow  = true
             lineDone  = true
 
-      println(s"lineDone at $bufOff. overflow? $overflow")
+      val sLine = new String(buf, 0, bufOff, "UTF-8")
+      println(s"lineDone at $bufOff. overflow? $overflow. line is $sLine")
 
       if !overflow then
-        val sLine = new String(buf, 0, bufOff, "UTF-8")
         val sArr = sLine.trim.split(' ')
         if sArr.length == numSensors then
           var t = 0
