@@ -11,6 +11,7 @@ import scala.swing.{Component, Dimension, Graphics2D, Label, MainFrame, Swing}
  */
 object ReceiveLDRText:
   val device      = "/dev/ttyACM0" // "/dev/ttyUSB0"
+  val baudRate    = 115200
   val numSensors  = 6 // 2
   val sensorVals  = new Array[Int](numSensors)
 
@@ -51,7 +52,9 @@ object ReceiveLDRText:
       val ports = SerialPort.getCommPorts()
       val _port = ports.find(_.getSystemPortPath == device).getOrElse(sys.error(s"Device $device not found"))
       val opened = _port.openPort()
+      val baudOk = _port.setBaudRate(baudRate)
       //      _port.setComPortTimeouts()
+      if (!baudOk) println(s"BAUD RATE $baudRate IS NOT VALID")
       require (opened, s"Could not open $device")
       (_port, _port.getInputStreamWithSuppressedTimeoutExceptions /*getInputStream*/)
     }
@@ -78,6 +81,7 @@ object ReceiveLDRText:
             val c = s.charAt(i).toInt - 48
             if c >= 0 && c <= 9 then
               sensorVal = sensorVal * 10 + c
+              i += 1
             else
               ok = false
 
