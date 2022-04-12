@@ -129,6 +129,8 @@ Running Python REPL in the terminal:
 
 (You may need to `sudo apt install screen`)
 
+To stop `screen`, press `ctrl-a` followed by `k`.
+
 ## Pn532 tests
 
 https://www.waveshare.com/wiki/PN532_NFC_HAT

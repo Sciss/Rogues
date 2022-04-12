@@ -64,28 +64,45 @@ object ReceiveLDRText:
       port.closePort()
 
   def runWith(in: InputStream)(fun: => Unit): Unit =
-    val reader = new BufferedReader(new InputStreamReader(in))
+    val bufSz = numSensors * 6
+    val buf   = new Array[Byte](bufSz)
     while true do
-//      while in.available() == 0 do
-//        Thread.sleep(1)
+      var lineDone  = false
+      var overflow  = false
+      var bufOff    = 0
 
-      val sArr = reader.readLine().trim.split(' ')
-      if sArr.length == numSensors then
-        var t = 0
-        while t < numSensors do
-          val s = sArr(t)
-          var i = 0
-          var sensorVal = 0
-          var ok = true
-          while ok && i < s.length do
-            val c = s.charAt(i).toInt - 48
-            if c >= 0 && c <= 9 then
-              sensorVal = sensorVal * 10 + c
-              i += 1
-            else
-              ok = false
+      while !lineDone do
+        val c = in.read()
+        if c < 0 then return
+        if c == 10 then
+          lineDone = true
+        else if !overflow then
+          buf(bufOff) = c.toByte
+          bufOff += 1
+          if bufOff == bufSz then
+            overflow = true
 
-          if ok then sensorVals(t) = sensorVal
-          t += 1
+      if !overflow then
+        val sLine = new String(buf, 0, bufOff, "UTF-8")
+        val sArr = sLine.trim.split(' ')
+        if sArr.length == numSensors then
+          var t = 0
+          while t < numSensors do
+            val s = sArr(t)
+            var i = 0
+            var sensorVal = 0
+            var ok = true
+            while ok && i < s.length do
+              val c = s.charAt(i).toInt - 48
+              if c >= 0 && c <= 9 then
+                sensorVal = sensorVal * 10 + c
+                i += 1
+              else
+                ok = false
 
-        fun
+            if ok then sensorVals(t) = sensorVal
+            t += 1
+
+          fun
+        end if
+      end if
