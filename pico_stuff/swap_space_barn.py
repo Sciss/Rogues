@@ -25,6 +25,8 @@ if (not butWait.value):
         ledInt.value = False
         time.sleep(0.4)
 
+samplePeriod = 0.05 # 20 Hz
+
 butAux = digitalio.DigitalInOut(board.GP14)
 butAux.switch_to_input(pull=digitalio.Pull.UP) # they close to GND
 
@@ -78,7 +80,7 @@ time.sleep(0.5)
 ledInt.value = False
 time.sleep(0.5)
 
-print("Hello from swap space, v2.")
+print("Hello from swap space, v3.")
 
 # # On CircuitPlayground Express, and boards with built in status NeoPixel -> board.NEOPIXEL
 # # Otherwise choose an open pin connected to the Data In of the NeoPixel strip, i.e. board.D1
@@ -128,28 +130,29 @@ while True:
     # ))
     for si in range(numSensors):
         value   = sensors[si].value
-        b5      = int(value / 10000)
+        b5      = value // 10000
         value   = value % 10000
-        buf[si * 6 + 0] = b5 + 48
-        b4      = int(value / 1000)
+        bi      = si * 6
+        buf[bi + 0] = b5 + 48
+        b4      = value // 1000
         value   = value % 1000
-        buf[si * 6 + 1] = b4 + 48
-        b3      = int(value / 100)
+        buf[bi + 1] = b4 + 48
+        b3      = value // 100
         value   = value % 100
-        buf[si * 6 + 2] = b3 + 48
-        b2      = int(value / 10)
+        buf[bi + 2] = b3 + 48
+        b2      = value // 10
         value   = value % 10
-        buf[si * 6 + 3] = b2 + 48
+        buf[bi + 3] = b2 + 48
         b1      = value
-        buf[si * 6 + 4] = b1 + 48
+        buf[bi + 4] = b1 + 48
 
     writer.write(buf)
 
-    time.sleep(0.1)
+    time.sleep(samplePeriod)
     ledCnt = ledCnt + 1
-    if (ledCnt == 10):
+    if (ledCnt == 20):
         ledExt1.value = True
-    elif (ledCnt == 11):
+    elif (ledCnt == 21):
         ledExt1.value = False
         ledCnt = 0
 
