@@ -105,13 +105,22 @@ time.sleep(0.5)
 # pixels.fill((0, 0, 0))
 # pixels.show()
 
+ledCnt = 0
+
 while True:
     print("{:>5} {:>5} {:>5} {:>5} {:>5} {:>5}".format(
         ldr_ch1.value, ldr_ch2.value, ldr_ch3.value,
         ldr_ch4.value, ldr_ch5.value, ldr_ch6.value,
     ))
 
-    time.sleep(0.2)
+    time.sleep(0.1)
+    ledCnt = ledCnt + 1
+    if (ledCnt == 10):
+        ledExt1.value = True
+    elif (ledCnt == 11):
+        ledExt1.value = False
+        ledCnt = 0
+
 
     # time.sleep(0.2)
     # ledInt.value = True
