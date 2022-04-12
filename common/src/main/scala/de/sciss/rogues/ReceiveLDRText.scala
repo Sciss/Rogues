@@ -94,6 +94,7 @@ object ReceiveLDRText:
 
       if !overflow then
         val sArr = sLine.trim.split(' ')
+        println(s"GOT ${sArr.length} VALUES")
         if sArr.length == numSensors then
           var t = 0
           while t < numSensors do
