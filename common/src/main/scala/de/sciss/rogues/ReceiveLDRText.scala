@@ -1,9 +1,13 @@
 package de.sciss.rogues
 
 import com.fazecast.jSerialComm.SerialPort
+import de.sciss.audiofile.{AudioFile, AudioFileSpec, AudioFileType, SampleFormat}
+import de.sciss.file.File
+import de.sciss.osc
 import org.rogach.scallop.ScallopConf
 
 import java.io.{BufferedReader, FileInputStream, InputStream, InputStreamReader}
+import java.net.InetSocketAddress
 import scala.swing.{Component, Dimension, Graphics2D, Label, MainFrame, Swing}
 
 /*  Corresponds to `swap_swap_barn.py`.
@@ -16,7 +20,16 @@ object ReceiveLDRText:
   val numSensors    = 6 // 2
   val sensorVals    = new Array[Int](numSensors)
 
-  case class Config(debug: Boolean = false, verbose: Boolean = false, device: String = defaultDevice)
+  case class Config(
+                     debug  : Boolean         = false,
+                     verbose: Boolean         = false,
+                     gui    : Boolean         = false,
+                     device : String          = defaultDevice,
+                     record : Option[File]    = None,
+                     osc    : Boolean         = false,
+                     oscIP  : String          = "127.0.0.1",
+                     oscPort: Int             = 57130,
+                   )
 
   def main(args: Array[String]): Unit =
     object p extends ScallopConf(args):
@@ -31,19 +44,65 @@ object ReceiveLDRText:
       val verbose: Opt[Boolean] = toggle(default = Some(default.verbose),
         descrYes = "Verbose operation.",
       )
+      val gui: Opt[Boolean] = toggle(default = Some(default.gui),
+        descrYes = "Show sensor data GUI.",
+      )
       val device: Opt[String] = opt(default = Some(default.device),
         descr = s"Serial device name (default: ${default.device}).",
+      )
+      val record: Opt[File] = opt(default = default.record,
+        descr = s"Record data to IRCAM sound file.",
+      )
+      val osc: Opt[Boolean] = toggle(default = Some(default.osc),
+        descrYes = "Send sensor data to OSC.",
+      )
+      val oscIP: Opt[String] = opt(name = "osc-ip", default = Some(default.oscIP),
+        descr = s"Target OSC IP address (default: ${default.oscIP}).",
+      )
+      val oscPort: Opt[Int] = opt(name = "osc-port", default = Some(default.oscPort),
+        descr = s"Target OSC port (default: ${default.oscPort}).",
       )
 
       verify()
       val config: Config = Config(
         debug     = debug   (),
         verbose   = verbose (),
+        gui       = gui     (),
         device    = device  (),
+        record    = record.toOption,
+        osc       = osc     (),
+        oscIP     = oscIP   (),
+        oscPort   = oscPort (),
       )
     end p
 
     implicit val c: Config = p.config
+
+    val recFileOpt = c.record.map { f =>
+      require (!f.exists(), s"Recordings file $f already exists. Not overwriting.")
+
+      val spec  = AudioFileSpec(
+        fileType      = AudioFileType.IRCAM,  // doesn't need header update
+        sampleFormat  = SampleFormat.Int16,   // that's the resolution of the ADC
+        numChannels   = numSensors,
+        sampleRate    = 20.0,                 // approximately; not used
+      )
+      val af = AudioFile.openWrite(f, spec)
+      af
+    }
+    val recBufLen = 1024
+    val recBuf    = Array.ofDim[Double](numSensors, recBufLen)
+
+    val oscT = if !c.osc then None else
+      val oscCfg  = osc.UDP.Config()
+      oscCfg.localIsLoopback = c.oscIP == "127.0.0.1"
+      val t = osc.UDP.Transmitter(oscCfg)
+      t.connect()
+      Some(t)
+
+    val oscTgt =
+      if !c.osc then InetSocketAddress.createUnresolved (c.oscIP, c.oscPort)
+      else       new InetSocketAddress                  (c.oscIP, c.oscPort)
 
     lazy val lb: Component = new Component {
       preferredSize = new Dimension(520, 30 + numSensors * 10)
@@ -64,18 +123,39 @@ object ReceiveLDRText:
         }
       }
     }
-    Swing.onEDT {
+    if c.gui then Swing.onEDT {
       val f = new MainFrame
       f.contents = lb
       f.pack().centerOnScreen()
       f.open()
     }
+
+    var recBufOff = 0
     run {
+      recFileOpt.foreach { af =>
+        var si = 0
+        while si < numSensors do
+          recBuf(si)(recBufOff) = sensorVals(si).toDouble / 0x7FFF
+          si += 1
+
+        recBufOff += 1
+        if recBufOff == recBufLen then
+          // println("WRITE")
+          af.write(recBuf)
+          recBufOff = 0
+      }
+
+      oscT.foreach { t =>
+        t.send(osc.Message("/ldr", sensorVals: _*), oscTgt)
+      }
+
       if c.verbose then
         val s = sensorVals.mkString("sensors: ", ", ", "")
         println(s)
-      lb.repaint()
-      lb.toolkit.sync()
+
+      if c.gui then
+        lb.repaint()
+        lb.toolkit.sync()
     }
 
   def run(fun: => Unit)(implicit c: Config): Unit =
