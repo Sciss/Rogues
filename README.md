@@ -18,7 +18,7 @@ Builds with sbt against Scala 3. See options: `sbt 'common/run --help'`. E.g.
     sbt 'common/runMain de.sciss.rogues.Iris --num-blades 7 --full-screen'
 
     sbt common/assembly
-    java -cp common/Rogues-common-assembly-0.1.0-SNAPSHOT.jar de.sciss.rogues.ReceiveLDRText
+    java -cp common/Rogues-common-assembly-0.1.0-SNAPSHOT.jar de.sciss.rogues.ReceiveSensors
 
 ## cap test
 

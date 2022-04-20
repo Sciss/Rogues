@@ -10,25 +10,24 @@ import java.io.{BufferedReader, FileInputStream, InputStream, InputStreamReader}
 import java.net.InetSocketAddress
 import scala.swing.{Component, Dimension, Graphics2D, Label, MainFrame, Swing}
 
-/*  Corresponds to `swap_swap_barn.py`.
+/*  Corresponds to `swap_swap_reagenz.py`.
  *
  *  Reads ASCII text formatted lines of sensor 16-bit sensor values separated by space characters
  */
-object ReceiveLDRText:
+object ReceiveSensors:
   val defaultDevice = "/dev/ttyACM1" // "/dev/ttyUSB0"
   val baudRate      = 115200
-  val numSensors    = 6 // 2
-  val sensorVals    = new Array[Int](numSensors)
 
   case class Config(
-                     debug  : Boolean         = false,
-                     verbose: Boolean         = false,
-                     gui    : Boolean         = false,
-                     device : String          = defaultDevice,
-                     record : Option[File]    = None,
-                     osc    : Boolean         = false,
-                     oscIP  : String          = "127.0.0.1",
-                     oscPort: Int             = 57130,
+                     debug      : Boolean         = false,
+                     verbose    : Boolean         = false,
+                     gui        : Boolean         = false,
+                     device     : String          = defaultDevice,
+                     numSensors : Int             = 12,
+                     record     : Option[File]    = None,
+                     osc        : Boolean         = false,
+                     oscIP      : String          = "127.0.0.1",
+                     oscPort    : Int             = 57130,
                    )
 
   def main(args: Array[String]): Unit =
@@ -50,6 +49,9 @@ object ReceiveLDRText:
       val device: Opt[String] = opt(default = Some(default.device),
         descr = s"Serial device name (default: ${default.device}).",
       )
+      val numSensors: Opt[Int] = opt(name = "num-sensors", default = Some(default.numSensors),
+        descr = s"Number of sensor values per frame (default: ${default.numSensors}).",
+      )
       val record: Opt[File] = opt(default = default.record,
         descr = s"Record data to IRCAM sound file.",
       )
@@ -65,18 +67,21 @@ object ReceiveLDRText:
 
       verify()
       val config: Config = Config(
-        debug     = debug   (),
-        verbose   = verbose (),
-        gui       = gui     (),
-        device    = device  (),
-        record    = record.toOption,
-        osc       = osc     (),
-        oscIP     = oscIP   (),
-        oscPort   = oscPort (),
+        debug       = debug     (),
+        verbose     = verbose   (),
+        gui         = gui       (),
+        device      = device    (),
+        numSensors  = numSensors(),
+        record      = record.toOption,
+        osc         = osc       (),
+        oscIP       = oscIP     (),
+        oscPort     = oscPort   (),
       )
     end p
 
     implicit val c: Config = p.config
+
+    val sensorVals = new Array[Int](c.numSensors)
 
     val recFileOpt = c.record.map { f =>
       require (!f.exists(), s"Recordings file $f already exists. Not overwriting.")
@@ -84,14 +89,14 @@ object ReceiveLDRText:
       val spec  = AudioFileSpec(
         fileType      = AudioFileType.IRCAM,  // doesn't need header update
         sampleFormat  = SampleFormat.Int16,   // that's the resolution of the ADC
-        numChannels   = numSensors,
+        numChannels   = c.numSensors,
         sampleRate    = 20.0,                 // approximately; not used
       )
       val af = AudioFile.openWrite(f, spec)
       af
     }
     val recBufLen = 1024
-    val recBuf    = Array.ofDim[Double](numSensors, recBufLen)
+    val recBuf    = Array.ofDim[Double](c.numSensors, recBufLen)
 
     val oscT = if !c.osc then None else
       val oscCfg  = osc.UDP.Config()
@@ -105,9 +110,9 @@ object ReceiveLDRText:
       else       new InetSocketAddress                  (c.oscIP, c.oscPort)
 
     lazy val lb: Component = new Component {
-      preferredSize = new Dimension(520, 30 + numSensors * 10)
+      preferredSize = new Dimension(520, 30 + c.numSensors * 10)
 
-      private val xs = new Array[Double](numSensors)
+      private val xs = new Array[Double](c.numSensors)
       private val w1 = 0.95
       private val w2 = 1.0 - w1
 
@@ -115,7 +120,7 @@ object ReceiveLDRText:
         super.paintComponent(g)
         var i = 0
         var y = 30
-        while (i < numSensors) {
+        while (i < c.numSensors) {
           val x = xs(i) * w1 + sensorVals(i) / 64.0 * w2
           xs(i) = x
           g.fillRect(4, y, x.toInt, 8)
@@ -131,10 +136,10 @@ object ReceiveLDRText:
     }
 
     var recBufOff = 0
-    run {
+    run(sensorVals = sensorVals) {
       recFileOpt.foreach { af =>
         var si = 0
-        while si < numSensors do
+        while si < c.numSensors do
           recBuf(si)(recBufOff) = sensorVals(si).toDouble / 0x7FFF
           si += 1
 
@@ -158,7 +163,7 @@ object ReceiveLDRText:
         lb.toolkit.sync()
     }
 
-  def run(fun: => Unit)(implicit c: Config): Unit =
+  def run(sensorVals: Array[Int])(fun: => Unit)(implicit c: Config): Unit =
     val (port, in) = {
       val ports = SerialPort.getCommPorts()
       val _port = ports.find(_.getSystemPortPath == c.device).getOrElse(sys.error(s"Device ${c.device} not found"))
@@ -170,13 +175,14 @@ object ReceiveLDRText:
       (_port, _port.getInputStreamWithSuppressedTimeoutExceptions /*getInputStream*/)
     }
     try
-      runWith(in)(fun)
+      runWith(in, sensorVals = sensorVals)(fun)
     finally
       port.closePort()
 
-  def runWith(in: InputStream)(fun: => Unit)(implicit c: Config): Unit =
-    val bufSz = numSensors * 6
-    val buf   = new Array[Byte](bufSz)
+  def runWith(in: InputStream, sensorVals: Array[Int])(fun: => Unit)(implicit c: Config): Unit =
+    val numSensors  = sensorVals.length
+    val bufSz       = numSensors * 6
+    val buf         = new Array[Byte](bufSz)
     while true do
       var lineDone  = false
       var overflow  = false
@@ -206,7 +212,7 @@ object ReceiveLDRText:
       if !overflow then
         val sArr = sLine.split(' ')
 //        println(s"GOT ${sArr.length} VALUES")
-        if sArr.length == numSensors then
+        if sArr.length >= numSensors then
           var t = 0
           while t < numSensors do
             val s = sArr(t)
