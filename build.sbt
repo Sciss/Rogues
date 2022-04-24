@@ -46,6 +46,7 @@ lazy val common = project.in(file("common"))
       "de.sciss"      %% "scalaosc"                 % deps.common.osc,          // open sound control
       "de.sciss"      %% "swingplus"                % deps.common.swingPlus,    // user interface
       "net.harawata"  %  "appdirs"                  % deps.common.appDirs,      // finding standard directories
+      "net.imagej"    %  "ij"                       % deps.common.imageJ,       // analyzing image data
       "org.rogach"    %% "scallop"                  % deps.common.scallop,      // command line option parsing
       "org.hid4java"  %  "hid4java"                 % deps.common.hid4java,     // USB HID access
       "com.fazecast"  %  "jSerialComm"              % deps.common.jSerialComm,  // Serial port reading
@@ -60,6 +61,7 @@ lazy val deps = new {
     val audioFile   = "2.4.0"
     val fileUtil    = "1.1.5"
     val hid4java    = "develop-20201104.172733-8" // stable: "0.7.0"
+    val imageJ      = "1.53j" // "1.47h"
     val jSerialComm = "2.8.0"
     val model       = "0.3.5"
     val numbers     = "0.2.1"
