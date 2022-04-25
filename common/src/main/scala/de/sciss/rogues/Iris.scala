@@ -19,8 +19,8 @@ import org.rogach.scallop.{ScallopConf, ScallopOption as Opt}
 import java.awt.{Color, RenderingHints}
 import java.awt.geom.{AffineTransform, Ellipse2D, Path2D}
 import java.awt.image.BufferedImage
+import java.util.Timer
 import javax.imageio.ImageIO
-import javax.swing.Timer
 import scala.math.Pi
 import scala.swing.event.{Key, KeyPressed, KeyTyped}
 import scala.swing.{Color, Component, Dimension, Graphics2D, Image, MainFrame, Point, Swing}
@@ -117,11 +117,11 @@ object Iris:
       open()
       canvas.requestFocus()
 
-    val t = new Timer(c.refreshPeriod, { _ =>
+    val t = new Timer()
+    t.scheduleAtFixedRate({ () =>
       canvas.repaint()
       canvas.toolkit.sync()
-    })
-    t.start()
+    }, c.refreshPeriod.toLong, c.refreshPeriod.toLong)
 
   class Canvas(extent: Int, numBlades: Int)
     extends Component:
