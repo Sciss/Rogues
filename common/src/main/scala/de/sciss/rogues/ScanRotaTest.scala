@@ -36,6 +36,9 @@ object ScanRotaTest:
                      margin       : Int     = 60,
                      refreshPeriod: Int     = 20,
                      fullScreen   : Boolean = false,
+                     centerIndex  : Int     = 0,
+                     smooth       : Boolean = false,
+                     debug        : Boolean = false,
                    )
 
   val centers: Seq[Center] = Seq(
@@ -54,6 +57,10 @@ object ScanRotaTest:
       printedName = "ScanRota"
       private val default = Config()
 
+      val centerIndex: Opt[Int] = opt(default = Some(default.centerIndex),
+        descr = s"Index of rotation center element, 0 until ${centers.size} (default: ${default.centerIndex}).",
+        validate = x => x >= 0 && x < centers.size,
+      )
       val radius: Opt[Int] = opt(default = Some(default.radius),
         descr = s"Envelope radius, greater than zero (default: ${default.radius}).",
         validate = x => x > 0,
@@ -77,15 +84,24 @@ object ScanRotaTest:
       val fullScreen: Opt[Boolean] = toggle(default = Some(default.fullScreen),
         descrYes = "Put window into full-screen mode.",
       )
+      val smooth: Opt[Boolean] = toggle(default = Some(default.smooth),
+        descrYes = "Use smooth interpolation.",
+      )
+      val debug: Opt[Boolean] = toggle(default = Some(default.debug),
+        descrYes = "Debug mode.",
+      )
 
       verify()
       val config: Config = Config(
-        radius       = radius       (),
-        xOffset      = xOffset      (),
-        yOffset      = yOffset      (),
-        margin       = margin       (),
-        refreshPeriod= refreshPeriod(),
-        fullScreen   = fullScreen   (),
+        centerIndex   = centerIndex   (),
+        radius        = radius        (),
+        xOffset       = xOffset       (),
+        yOffset       = yOffset       (),
+        margin        = margin        (),
+        refreshPeriod = refreshPeriod (),
+        fullScreen    = fullScreen    (),
+        smooth        = smooth        (),
+        debug         = debug         (),
       )
     end p
 
@@ -96,7 +112,7 @@ object ScanRotaTest:
   /** Must be called on the EDT. */
   def run()(implicit c: Config): Unit =
     val extent  = (c.radius + c.margin) * 2
-    val canvas  = new Canvas(extent = extent)
+    val canvas  = new Canvas(extent = extent, smooth = c.smooth, centerIndex = c.centerIndex, debug = c.debug)
 
     new MainFrame:
       if c.fullScreen then
@@ -122,7 +138,7 @@ object ScanRotaTest:
       canvas.toolkit.sync()
     }, c.refreshPeriod.toLong, c.refreshPeriod.toLong)
 
-  class Canvas(extent: Int)
+  class Canvas(extent: Int, centerIndex: Int, smooth: Boolean, debug: Boolean)
     extends Component:
 
     private val t0 = System.currentTimeMillis()
@@ -137,10 +153,16 @@ object ScanRotaTest:
     private val imgH    = img.getHeight
     private val radius  = extent / 2.0
 
-    private val center = centers.find(c =>
-      c.cx >= radius && (imgW - c.cx >= radius) &&
-      c.cy >= radius && (imgH - c.cy >= radius)
-    ) .getOrElse(sys.error("No suitable center"))
+//    private val center = centers.find(c =>
+//      c.cx >= radius && (imgW - c.cx >= radius) &&
+//      c.cy >= radius && (imgH - c.cy >= radius)
+//    ) .getOrElse(sys.error("No suitable center"))
+
+    private val center = {
+      val c0 = centers(centerIndex)
+      val radiusI = radius.ceil.toInt
+      c0.copy(cx = c0.cx.clip(radiusI, imgW - radiusI), cy = c0.cy.clip(radiusI, imgH - radiusI))
+    }
 
     private var direction   = 0
     private var tM          = t0
@@ -157,8 +179,10 @@ object ScanRotaTest:
       val cx  = w * 0.5
       val cy  = h * 0.5
 
-      g.setColor(Color.black)
-      g.fillRect(0, 0, w, h)
+//      g.setColor(Color.black)
+//      g.fillRect(0, 0, w, h)
+
+      if (smooth)
       g.setRenderingHint(RenderingHints.KEY_ANTIALIASING  , RenderingHints.VALUE_ANTIALIAS_ON         )
       g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE          )
       g.setRenderingHint(RenderingHints.KEY_INTERPOLATION , RenderingHints.VALUE_INTERPOLATION_BICUBIC)
@@ -171,8 +195,9 @@ object ScanRotaTest:
       g.drawImage(img, 0, 0, peer)
       g.setTransform(atOrig)
 
-      g.setColor(Color.green)
-      g.drawOval(0, 0, w, h)
+      if debug then
+        g.setColor(Color.green)
+        g.drawOval(0, 0, w, h)
 
       val t1 = System.currentTimeMillis()
       if direction == 0 then
