@@ -21,6 +21,10 @@ Builds with sbt against Scala 3. See options: `sbt 'common/run --help'`. E.g.
     sbt common/assembly
     java -cp common/Rogues-common-assembly-0.1.0-SNAPSHOT.jar de.sciss.rogues.ReceiveSensors --gui
 
+    java -Dsun.java2d.opengl=true -cp common/Rogues-common-assembly-0.1.0-SNAPSHOT.jar de.sciss.rogues.ScanRotaTest --margin 0 --full-screen --center-index 5
+
+To improve Pi 4 performance: `java -Dsun.java2d.opengl=true ...`
+
 ## cap test
 
 __OBSOLETE__
