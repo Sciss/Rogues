@@ -2,7 +2,8 @@
 
 # Rogues
 
-This repository contains code for an ongoing art project. See [Research Catalogue](https://www.researchcatalogue.net/view/1437680/1437681).
+This repository contains code for an ongoing art project.
+See [Research Catalogue](https://www.researchcatalogue.net/view/1437680/1437681).
 
 (C)opyright 2021–2022 by Hanns Holger Rutz. All rights reserved. This project is released under the
 [GNU Affero General Public License](https://github.comt/Sciss/Rogues/blob/main/LICENSE) v3+ and
@@ -18,7 +19,7 @@ Builds with sbt against Scala 3. See options: `sbt 'common/run --help'`. E.g.
     sbt 'common/runMain de.sciss.rogues.Iris --num-blades 7 --full-screen'
 
     sbt common/assembly
-    java -cp common/Rogues-common-assembly-0.1.0-SNAPSHOT.jar de.sciss.rogues.ReceiveSensors
+    java -cp common/Rogues-common-assembly-0.1.0-SNAPSHOT.jar de.sciss.rogues.ReceiveSensors --gui
 
 ## cap test
 

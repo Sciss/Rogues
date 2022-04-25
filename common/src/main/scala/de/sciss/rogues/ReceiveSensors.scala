@@ -1,3 +1,16 @@
+/*
+ *  ReceiveSensors.scala
+ *  (Rogues)
+ *
+ *  Copyright (c) 2021-2022 Hanns Holger Rutz. All rights reserved.
+ *
+ *  This software is published under the GNU Affero General Public License v3+
+ *
+ *
+ *  For further information, please contact Hanns Holger Rutz at
+ *  contact@sciss.de
+ */
+
 package de.sciss.rogues
 
 import com.fazecast.jSerialComm.SerialPort
@@ -10,7 +23,7 @@ import java.io.{BufferedReader, FileInputStream, InputStream, InputStreamReader}
 import java.net.InetSocketAddress
 import scala.swing.{Component, Dimension, Graphics2D, Label, MainFrame, Swing}
 
-/*  Corresponds to `swap_swap_reagenz.py`.
+/*  Corresponds to `swap_space_reagenz.py` on the Pico, sending data via USB serial.
  *
  *  Reads ASCII text formatted lines of sensor 16-bit sensor values separated by space characters
  */
@@ -80,7 +93,9 @@ object ReceiveSensors:
     end p
 
     implicit val c: Config = p.config
+    run()
 
+  def run()(implicit c: Config): Unit =
     val sensorVals = new Array[Int](c.numSensors)
 
     val recFileOpt = c.record.map { f =>
@@ -136,7 +151,7 @@ object ReceiveSensors:
     }
 
     var recBufOff = 0
-    run(sensorVals = sensorVals) {
+    runWith(sensorVals = sensorVals) {
       recFileOpt.foreach { af =>
         var si = 0
         while si < c.numSensors do
@@ -163,7 +178,7 @@ object ReceiveSensors:
         lb.toolkit.sync()
     }
 
-  def run(sensorVals: Array[Int])(fun: => Unit)(implicit c: Config): Unit =
+  def runWith(sensorVals: Array[Int])(fun: => Unit)(implicit c: Config): Unit =
     val (port, in) = {
       val ports = SerialPort.getCommPorts()
       val _port = ports.find(_.getSystemPortPath == c.device).getOrElse(sys.error(s"Device ${c.device} not found"))
@@ -175,11 +190,11 @@ object ReceiveSensors:
       (_port, _port.getInputStreamWithSuppressedTimeoutExceptions /*getInputStream*/)
     }
     try
-      runWith(in, sensorVals = sensorVals)(fun)
+      runStream(in, sensorVals = sensorVals)(fun)
     finally
       port.closePort()
 
-  def runWith(in: InputStream, sensorVals: Array[Int])(fun: => Unit)(implicit c: Config): Unit =
+  def runStream(in: InputStream, sensorVals: Array[Int])(fun: => Unit)(implicit c: Config): Unit =
     val numSensors  = sensorVals.length
     val bufSz       = numSensors * 6
     val buf         = new Array[Byte](bufSz)

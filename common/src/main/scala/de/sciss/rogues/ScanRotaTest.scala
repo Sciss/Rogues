@@ -1,5 +1,5 @@
 /*
- *  Iris.scala
+ *  ScanRotaTest.scala
  *  (Rogues)
  *
  *  Copyright (c) 2021-2022 Hanns Holger Rutz. All rights reserved.
@@ -13,21 +13,23 @@
 
 package de.sciss.rogues
 
+import de.sciss.file.*
+
+import java.awt.{Color, RenderingHints}
+import java.awt.geom.{AffineTransform, Path2D}
+import java.awt.image.BufferedImage
+import java.util.Timer
+import scala.swing.{Component, Dimension, Graphics2D, MainFrame, Point, Swing}
+import scala.swing.event.{Key, KeyPressed}
 import de.sciss.numbers.Implicits.*
 import org.rogach.scallop.{ScallopConf, ScallopOption as Opt}
 
-import java.awt.{Color, RenderingHints}
-import java.awt.geom.{AffineTransform, Ellipse2D, Path2D}
-import java.awt.image.BufferedImage
-import java.util.Timer
 import javax.imageio.ImageIO
-import scala.math.Pi
-import scala.swing.event.{Key, KeyPressed, KeyTyped}
-import scala.swing.{Color, Component, Dimension, Graphics2D, Image, MainFrame, Point, Swing}
 
-object Iris:
+object ScanRotaTest:
+  case class Center(cx: Int, cy: Int, r: Int, strength: Double)
+
   case class Config(
-                     numBlades    : Int     = 6,
                      radius       : Int     = 240,
                      xOffset      : Double  = -0.25,
                      yOffset      : Double  = 0.0,
@@ -36,17 +38,22 @@ object Iris:
                      fullScreen   : Boolean = false,
                    )
 
+  val centers: Seq[Center] = Seq(
+    Center(cx = 1183, cy =  916, r = 50, strength = 49.7),
+    Center(cx = 1009, cy = 1528, r = 44, strength = 44.1),
+    Center(cx =  307, cy = 1339, r = 80, strength = 80.0),
+    Center(cx = 1482, cy = 2061, r = 57, strength = 56.8),
+    Center(cx =  879, cy = 1012, r = 49, strength = 48.7),
+    Center(cx =  633, cy = 1825, r = 21, strength = 21.0),
+  )
+
   def main(args: Array[String]): Unit =
     object p extends ScallopConf(args):
       import org.rogach.scallop.*
 
-      printedName = "Iris"
+      printedName = "ScanRota"
       private val default = Config()
 
-      val numBlades: Opt[Int] = opt(default = Some(default.numBlades),
-        descr = s"Number of blades, 3 or larger (default: ${default.numBlades}).",
-        validate = x => x >= 3
-      )
       val radius: Opt[Int] = opt(default = Some(default.radius),
         descr = s"Envelope radius, greater than zero (default: ${default.radius}).",
         validate = x => x > 0,
@@ -67,28 +74,18 @@ object Iris:
         descr = s"Window refresh period in milliseconds (default: ${default.refreshPeriod}).",
         validate = x => x > 0,
       )
-//      val cyclePeriod: Opt[Double] = opt(default = Some(default.cyclePeriod),
-//        descr = s"Animation cycle period in seconds (default: ${default.cyclePeriod}).",
-//        validate = x => x > 0.0,
-//      )
       val fullScreen: Opt[Boolean] = toggle(default = Some(default.fullScreen),
         descrYes = "Put window into full-screen mode.",
       )
-//      val hideEnvelope: Opt[Boolean] = toggle(default = Some(!default.drawEnvelope),
-//        descrYes = "Do not draw enveloping circle.",
-//      )
 
       verify()
       val config: Config = Config(
-        numBlades    = numBlades    (),
         radius       = radius       (),
         xOffset      = xOffset      (),
         yOffset      = yOffset      (),
         margin       = margin       (),
         refreshPeriod= refreshPeriod(),
-//        cyclePeriod  = cyclePeriod  (),
         fullScreen   = fullScreen   (),
-//        drawEnvelope = !hideEnvelope(),
       )
     end p
 
@@ -99,7 +96,7 @@ object Iris:
   /** Must be called on the EDT. */
   def run()(implicit c: Config): Unit =
     val extent  = (c.radius + c.margin) * 2
-    val canvas  = new Canvas(extent = extent, numBlades = c.numBlades)
+    val canvas  = new Canvas(extent = extent)
 
     new MainFrame:
       if c.fullScreen then
@@ -111,7 +108,7 @@ object Iris:
           case KeyPressed(_, Key.Escape, _, _) => closeOperation()
         }
       else
-        title = "Iris"
+        title = "ScanRota"
 
       contents  = canvas
       pack()
@@ -125,7 +122,7 @@ object Iris:
       canvas.toolkit.sync()
     }, c.refreshPeriod.toLong, c.refreshPeriod.toLong)
 
-  class Canvas(extent: Int, numBlades: Int)
+  class Canvas(extent: Int)
     extends Component:
 
     private val t0 = System.currentTimeMillis()
@@ -133,27 +130,17 @@ object Iris:
     opaque = true
     preferredSize = new Dimension(extent, extent)
 
-    private val NumBlades   = numBlades // 6
-    private val BladeAngle  = 2 * Pi / NumBlades
+    private val img     = ImageIO.read(file(
+      "images/IMG_0056ovr_eq_scale.jpg")
+    )
+    private val imgW    = img.getWidth
+    private val imgH    = img.getHeight
+    private val radius  = extent / 2.0
 
-    private val radius = extent / 2.0
-    private val BladeAngleH = BladeAngle / 2
-    private val triBaseH = {
-      -radius / (1.0 - (1.0 / math.tan(BladeAngleH))) // distance to the rotating axis, equals half base of triangle
-    }
-
-    private val ExtTan = extent * math.tan(BladeAngleH)
-
-    println(s"triBaseH $triBaseH")
-
-    private val baseShape = {
-      val p     = new Path2D.Float()
-      p.moveTo(-triBaseH, -triBaseH)
-      p.lineTo(0.0, radius)
-      p.lineTo(+triBaseH, -triBaseH)
-      p.closePath()
-      p
-    }
+    private val center = centers.find(c =>
+      c.cx >= radius && (imgW - c.cx >= radius) &&
+      c.cy >= radius && (imgH - c.cy >= radius)
+    ) .getOrElse(sys.error("No suitable center"))
 
     private var direction   = 0
     private var tM          = t0
@@ -170,32 +157,19 @@ object Iris:
       val cx  = w * 0.5
       val cy  = h * 0.5
 
-      g.setColor(Color.red) // new Color(0x000000))
+      g.setColor(Color.black)
       g.fillRect(0, 0, w, h)
       g.setRenderingHint(RenderingHints.KEY_ANTIALIASING  , RenderingHints.VALUE_ANTIALIAS_ON         )
       g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE          )
       g.setRenderingHint(RenderingHints.KEY_INTERPOLATION , RenderingHints.VALUE_INTERPOLATION_BICUBIC)
 
       val atOrig = g.getTransform
-      val posH = position * 0.5
-      for (i <- 0 until NumBlades) {
-//        val posRot = position.linLin(0.0, 1.0, 0.0, -15.0 * Pi / 180)
-        g.rotate((i - posH) * BladeAngle, cx, cy)
-        g.translate(cx, 0.0) // cy * 0.105) // XXX TODO exact value
-//        val rotAng = 60 * Pi / 180 // MinRot // MaxRot // 45 * Pi / 180
-//        val rotAng = position.linLin(0.0, 1.0, MinRot, MaxRot)
-//        val anchX = position.linLin(0.0, 1.0, 0.0,  20.0 * 4)
-//        val anchY = position.linLin(0.0, 1.0, 0.0, -20.0 * 2)
-        val posTx = position.linLin(0.0, 1.0, 0.0, extent * 0.5773502691896257)
-//        val atRot = AffineTransform.getRotateInstance(rotAng, anchX, anchY)  // XXX TODO why the anchor is not triBaseH
-        val atRot = AffineTransform.getTranslateInstance(posTx, 0.0)
-        val shp = atRot.createTransformedShape(baseShape)
-        g.setColor(Color.black)
-        g.fill(shp)
-        g.setColor(Color.white)
-        g.draw(shp)
-        g.setTransform(atOrig)
-      }
+//      val posH = position * 0.5
+      val ang = (position * math.Pi).cos * math.Pi
+      g.rotate(ang, cx, cy)
+      g.translate(cx - center.cx, cy - center.cy)
+      g.drawImage(img, 0, 0, peer)
+      g.setTransform(atOrig)
 
       g.setColor(Color.green)
       g.drawOval(0, 0, w, h)
