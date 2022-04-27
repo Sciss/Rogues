@@ -1,5 +1,5 @@
 /*
- *  ScanRotaTest.scala
+ *  SwapRogue.scala
  *  (Rogues)
  *
  *  Copyright (c) 2021-2022 Hanns Holger Rutz. All rights reserved.
@@ -24,9 +24,12 @@ import scala.swing.event.{Key, KeyPressed}
 import de.sciss.numbers.Implicits.*
 import org.rogach.scallop.{ScallopConf, ScallopOption as Opt}
 
+import java.awt.event.{KeyAdapter, KeyEvent}
+import math.{max, min}
 import javax.imageio.ImageIO
+import javax.swing.JComponent
 
-object ScanRotaTest:
+object SwapRogue:
   case class Center(cx: Int, cy: Int, r: Int, strength: Double)
 
   case class Config(
@@ -34,13 +37,13 @@ object ScanRotaTest:
                      xOffset      : Double  = -0.25,
                      yOffset      : Double  = 0.0,
                      margin       : Int     = 60,
-                     refreshPeriod: Int     = 20,
+                     fps          : Int     = 50,
                      fullScreen   : Boolean = false,
                      imageIndex   : Int     = 52,
                      centerIndex  : Int     = 0,
                      smooth       : Boolean = false,
                      debug        : Boolean = false,
-                   )
+                   ) extends Visual.Config
 
   val centers: Map[Int, Seq[Center]] = Map(
     47 -> Seq(
@@ -203,8 +206,8 @@ object ScanRotaTest:
         descr = s"Window margin in pixels (default: ${default.margin}).",
         validate = x => x >= 0,
       )
-      val refreshPeriod: Opt[Int] = opt(default = Some(default.refreshPeriod),
-        descr = s"Window refresh period in milliseconds (default: ${default.refreshPeriod}).",
+      val fps: Opt[Int] = opt(default = Some(default.fps),
+        descr = s"Window refresh frames-per-second (default: ${default.fps}).",
         validate = x => x > 0,
       )
       val fullScreen: Opt[Boolean] = toggle(default = Some(default.fullScreen),
@@ -225,7 +228,7 @@ object ScanRotaTest:
         xOffset       = xOffset       (),
         yOffset       = yOffset       (),
         margin        = margin        (),
-        refreshPeriod = refreshPeriod (),
+        fps           = fps           (),
         fullScreen    = fullScreen    (),
         smooth        = smooth        (),
         debug         = debug         (),
@@ -239,116 +242,32 @@ object ScanRotaTest:
   /** Must be called on the EDT. */
   def run()(implicit c: Config): Unit =
     val extent  = (c.radius + c.margin) * 2
-    val canvas  = new Canvas(
-      extent      = extent,
-      smooth      = c.smooth,
-      imageIndex  = c.imageIndex,
-      centerIndex = c.centerIndex,
-      debug       = c.debug,
-    )
+    val visual  = new Visual(extent = extent)
 
     new MainFrame:
       if c.fullScreen then
         peer.setUndecorated(true)
-        canvas.cursor = java.awt.Toolkit.getDefaultToolkit.createCustomCursor(
+        visual.component.setCursor(java.awt.Toolkit.getDefaultToolkit.createCustomCursor(
           new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB), new Point(0, 0), "hidden"
+        ))
+        visual.component.addKeyListener(
+          new KeyAdapter {
+            override def keyPressed(e: KeyEvent): Unit =
+              if (e.getKeyCode == KeyEvent.VK_ESCAPE) closeOperation()
+          }
         )
-        canvas.keys.reactions += {
-          case KeyPressed(_, Key.Escape, _, _) => closeOperation()
-        }
       else
         title = "ScanRota"
 
-      contents  = canvas
+      contents  = Component.wrap(visual.component)
       pack()
       centerOnScreen()
       open()
-      canvas.requestFocus()
+      visual.component.requestFocus()
 
-    val t = new Timer()
-    t.scheduleAtFixedRate({ () =>
-      canvas.repaint()
-      canvas.toolkit.sync()
-    }, c.refreshPeriod.toLong, c.refreshPeriod.toLong)
+//    val t = new Timer()
+//    t.scheduleAtFixedRate({ () =>
+//      visual.repaint()
+//      visual.toolkit.sync()
+//    }, c.refreshPeriod.toLong, c.refreshPeriod.toLong)
 
-  class Canvas(extent: Int, imageIndex: Int, centerIndex: Int, smooth: Boolean, debug: Boolean)
-    extends Component:
-
-    private val t0 = System.currentTimeMillis()
-
-    opaque = true
-    preferredSize = new Dimension(extent, extent)
-
-    private val imgPath = s"images/scan$imageIndex.jpg"
-    // println(imgPath)
-    private val img     = ImageIO.read(file(imgPath))
-    private val imgW    = img.getWidth
-    private val imgH    = img.getHeight
-    private val radius  = extent / 2.0
-
-//    private val center = centers.find(c =>
-//      c.cx >= radius && (imgW - c.cx >= radius) &&
-//      c.cy >= radius && (imgH - c.cy >= radius)
-//    ) .getOrElse(sys.error("No suitable center"))
-
-    private val center = {
-      val c0 = centers(imageIndex)(centerIndex)
-      println(c0)
-      val radiusI = radius.ceil.toInt
-      val c1 = c0.copy(cx = c0.cx.clip(radiusI, imgW - radiusI), cy = c0.cy.clip(radiusI, imgH - radiusI))
-      println(c1)
-      c1
-    }
-
-    private var direction   = 0
-    private var tM          = t0
-    private var closed      = true
-    private var position    = 0.0
-
-    private val RotSpeed    = 1.0e-6 // 2.0e-5
-    private val WaitChange  = 3.0 * 1000
-
-    override protected def paintComponent(g: Graphics2D): Unit =
-      val p   = peer
-      val w   = p.getWidth
-      val h   = p.getHeight
-      val cx  = w * 0.5
-      val cy  = h * 0.5
-
-//      g.setColor(Color.black)
-//      g.fillRect(0, 0, w, h)
-
-      if (smooth)
-      g.setRenderingHint(RenderingHints.KEY_ANTIALIASING  , RenderingHints.VALUE_ANTIALIAS_ON         )
-      g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE          )
-      g.setRenderingHint(RenderingHints.KEY_INTERPOLATION , RenderingHints.VALUE_INTERPOLATION_BICUBIC)
-
-      val atOrig = g.getTransform
-//      val posH = position * 0.5
-      val ang = (position * math.Pi).cos * math.Pi
-      g.rotate(ang, cx, cy)
-      g.translate(cx - center.cx, cy - center.cy)
-      g.drawImage(img, 0, 0, peer)
-      g.setTransform(atOrig)
-
-      if debug then
-        g.setColor(Color.green)
-        g.drawOval(0, 0, w, h)
-
-      val t1 = System.currentTimeMillis()
-      if direction == 0 then
-        if t1 - tM > WaitChange then
-          tM = t1
-          direction = if closed then -1 else +1
-        end if
-      else
-        position += direction * (t1 - tM) * RotSpeed
-        if position <= 0.0 || position >= 1.0 then
-          position  = position.clip(0.0, 1.0)
-          tM        = t1
-          direction = 0
-          closed    = !closed
-        end if
-      end if
-
-    end paintComponent
