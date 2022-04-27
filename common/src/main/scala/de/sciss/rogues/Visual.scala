@@ -15,7 +15,7 @@ package de.sciss.rogues
 
 import de.sciss.file.file
 import de.sciss.numbers.Implicits.*
-import de.sciss.rogues.SwapRogue.{Config, centers}
+import de.sciss.rogues.SwapRogue.{Center, Config, centers}
 
 import java.awt.image.BufferedImage
 import java.awt.{Color, RenderingHints}
@@ -46,7 +46,7 @@ object Visual {
     peer
   }
 }
-class Visual(extent: Int)(implicit config: Visual.Config): //, imageIndex: Int, centerIndex: Int, smooth: Boolean, debug: Boolean):
+class Visual(extent: Int)(implicit config: Visual.Config) {
 
   private val t0 = System.currentTimeMillis()
   private val canvas = new Canvas(config.fps)
@@ -60,15 +60,16 @@ class Visual(extent: Int)(implicit config: Visual.Config): //, imageIndex: Int, 
   private val centerIndex = config.centerIndex
 
   private val imgPath       = s"images/scan$imageIndex.jpg"
-  private val imgFibrePath  = s"images/fibre4.jpg"
+  private val imgFibrePath  = s"images/fibre$imageIndex.jpg"
   // println(imgPath)
   private val img       = Visual.loadImage(imgPath)
   private val imgFibre  = Visual.loadImage(imgFibrePath)
 
-  println(s"imgFibre.w ${imgFibre.getWidth}, imgFibre.h ${imgFibre.getHeight}")
+//  println(s"imgFibre.w ${imgFibre.getWidth}, imgFibre.h ${imgFibre.getHeight}")
 
   private val imgW      = img.getWidth
   private val imgH      = img.getHeight
+  private val fibreH    = imgFibre.getHeight
   private val radius    = extent / 2 // .0
 
   //    private val center = centers.find(c =>
@@ -76,8 +77,13 @@ class Visual(extent: Int)(implicit config: Visual.Config): //, imageIndex: Int, 
   //      c.cy >= radius && (imgH - c.cy >= radius)
   //    ) .getOrElse(sys.error("No suitable center"))
 
-  private val center = {
-    val c0 = centers(imageIndex)(centerIndex)
+  private var center: Center = _
+
+  private var focusTgtX   : Double        = center.cx
+  private var focusTgtY   : Double        = center.cy
+
+  private def mkCenter(idx: Int): Center = {
+    val c0 = centers(imageIndex)(idx)
     println(c0)
     val radiusI = radius // .ceil.toInt
     val c1 = c0.copy(cx = c0.cx.clip(radiusI, imgW - radiusI), cy = c0.cy.clip(radiusI, imgH - radiusI))
@@ -85,8 +91,13 @@ class Visual(extent: Int)(implicit config: Visual.Config): //, imageIndex: Int, 
     c1
   }
 
-  private var focusTgtX   : Double        = center.cx
-  private var focusTgtY   : Double        = center.cy
+  def setCenterIndex(idx: Int): Unit = {
+    val _center = mkCenter(idx)
+    center      = _center
+    focusTgtX   = _center.cx
+    focusTgtX   = _center.cy
+  }
+
 
   private var direction   = 0
   private var tM          = t0
@@ -122,7 +133,8 @@ class Visual(extent: Int)(implicit config: Visual.Config): //, imageIndex: Int, 
 
   private val compositeNormal = java.awt.AlphaComposite.SrcOver
 //  private val compositeBurn   = new ColorBurnComposite(1f)
-  private val compositeBurn: java.awt.Composite = new com.jhlabs.composite.MultiplyComposite(1f)
+//  private val compositeBurn: java.awt.Composite = new com.jhlabs.composite.MultiplyComposite(1f)
+  private val compositeBurn: java.awt.Composite = new com.jhlabs.composite.ColorBurnComposite(1f)
 
   protected def paint(g: Graphics2D, animTime: Double): Unit =
     //      val p   = peer
@@ -186,12 +198,12 @@ class Visual(extent: Int)(implicit config: Visual.Config): //, imageIndex: Int, 
     val cmpOrig = g.getComposite
     g.setComposite(compositeBurn)
 //    g.drawImage(imgFibre, 0, 0, null)
-    val fibreY = (animTime * 0.01).toInt % (2538 - 480)
-    g.drawImage(imgFibre, 0, 0, 480, 480, 0, fibreY, 480, fibreY + 480, null)
+    val fibreY = (animTime * 0.01).toInt % (fibreH - extent)
+    g.drawImage(imgFibre, 0, 0, extent, extent, 0, fibreY, extent, fibreY + extent, null)
     g.setComposite(cmpOrig)
 
   end paint
 
+  setCenterIndex(config.centerIndex)
   repaint()
-
-end Visual
+}
