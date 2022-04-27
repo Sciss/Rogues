@@ -19,9 +19,10 @@ import de.sciss.rogues.SwapRogue.{Center, Config, centers}
 
 import java.awt.image.BufferedImage
 import java.awt.{Color, RenderingHints}
+import java.awt.geom.{AffineTransform, Path2D}
 import javax.imageio.ImageIO
 import javax.swing.JComponent
-import scala.math.min
+import scala.math.{Pi, cos, min, tan, round}
 import scala.swing.{Dimension, Graphics2D}
 
 object Visual {
@@ -32,6 +33,7 @@ object Visual {
      def centerIndex  : Int
      def smooth       : Boolean
      def debug        : Boolean
+     def numBlades    : Int
   }
 
   def loadImage(path: String): BufferedImage = {
@@ -99,13 +101,19 @@ class Visual(extent: Int)(implicit config: Visual.Config) {
   }
 
 
-  private var direction   = 0
+  private var dirIris     = 0
+  private var dirScan     = 0
   private var tM          = t0
-  private var closed      = true
-  private var position    = 0.0
+  private var nextDirScan = true
+  private var closedIris  = true
+  private var posScan     = 0.0
+  private var posFade     = 0.0
+  private var posIris     = 0.0
 
-  private val RotSpeed    = 1.0e-6 // 2.0e-5
-  private val WaitChange  = 3.0 * 1000
+  private val RotScanSpeed  = 1.0e-6 // 2.0e-5
+  private val IrisSpeed     = 2.0e-6 // 2.0e-5
+  private val FadeSpeed     = 3.0e-6 // 2.0e-5
+  private val WaitChange    = 3.0 * 1000
 
   private val focusMinX = radius // canvasWH
   private val focusMinY = radius // canvasHH
@@ -136,7 +144,26 @@ class Visual(extent: Int)(implicit config: Visual.Config) {
 //  private val compositeBurn: java.awt.Composite = new com.jhlabs.composite.MultiplyComposite(1f)
   private val compositeBurn: java.awt.Composite = new com.jhlabs.composite.ColorBurnComposite(1f)
 
-  protected def paint(g: Graphics2D, animTime: Double): Unit =
+  private var state = 0   // 0 - iris, 1 - iris-to-scan, 2 - scan
+
+  private val NumBlades   = config.numBlades // 6
+  private val BladeAngle  = 2 * Pi / NumBlades
+  private val BladeAngleH = BladeAngle / 2
+
+  private val triBaseH = {
+    -radius / (1.0 - (1.0 / tan(BladeAngleH))) // distance to the rotating axis, equals half base of triangle
+  }
+
+  private val irisBaseShape = {
+    val p     = new Path2D.Float()
+    p.moveTo(-triBaseH, -triBaseH)
+    p.lineTo(0.0, radius)
+    p.lineTo(+triBaseH, -triBaseH)
+    p.closePath()
+    p
+  }
+
+  protected def paint(g: Graphics2D, animTime: Double): Unit = {
     //      val p   = peer
     val w   = extent // p.getWidth
     val h   = extent // p.getHeight
@@ -147,62 +174,129 @@ class Visual(extent: Int)(implicit config: Visual.Config) {
     lastAnimTime  = animTime
     val wT        = animDt * speed // 0.01
     val wS        = 1.0 - wT
-    val focusX1   = (focusX * wS + focusTgtX * wT).clip(focusMinX, focusMaxX)
-    val focusY1   = (focusY * wS + focusTgtY * wT).clip(focusMinY, focusMaxY)
 
-    val dx  = focusX1 - focusX
-    val dy  = focusY1 - focusY
-    focusX  = focusX1
-    focusY  = focusY1
+    val atOrig = g.getTransform
 
-    val tx = focusX - focusMinX
-    val ty = focusY - focusMinY
+//    g.setColor(Color.blue)
+//    g.fillRect(0, 0, w, h)
 
-    g.setColor(Color.blue)
-    g.fillRect(0, 0, w, h)
-
-    if (smooth) {
+    if smooth then {
       g.setRenderingHint(RenderingHints.KEY_ANTIALIASING  , RenderingHints.VALUE_ANTIALIAS_ON         )
       g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE          )
       g.setRenderingHint(RenderingHints.KEY_INTERPOLATION , RenderingHints.VALUE_INTERPOLATION_BICUBIC)
     }
 
-    val atOrig = g.getTransform
-    //      val posH = position * 0.5
-    val ang = (position * math.Pi).cos * math.Pi
-    g.rotate(ang, cx, cy)
-    g.translate(-tx, -ty) // cx - center.cx, cy - center.cy)
-    g.drawImage(img, 0, 0, null /*peer*/)
-    g.setTransform(atOrig)
+    if state == 2 then {
+      val focusX1   = (focusX * wS + focusTgtX * wT).clip(focusMinX, focusMaxX)
+      val focusY1   = (focusY * wS + focusTgtY * wT).clip(focusMinY, focusMaxY)
 
-    if debug then
+      //    val dx  = focusX1 - focusX
+      //    val dy  = focusY1 - focusY
+      focusX  = focusX1
+      focusY  = focusY1
+    }
+
+    if state > 0 then {
+      val tx = focusX - focusMinX
+      val ty = focusY - focusMinY
+
+      //      val posH = position * 0.5
+      val ang = cos(posScan * Pi) * Pi
+      g.rotate(ang, cx, cy)
+      g.translate(-tx, -ty) // cx - center.cx, cy - center.cy)
+      g.drawImage(img, 0, 0, null /*peer*/)
+      g.setTransform(atOrig)
+
+      val cmpOrig = g.getComposite
+      g.setComposite(compositeBurn)
+      val fibreY = (animTime * 0.01).toInt % (fibreH - extent)
+      g.drawImage(imgFibre, 0, 0, extent, extent, 0, fibreY, extent, fibreY + extent, null)
+      g.setComposite(cmpOrig)
+    }
+
+    if state < 2 then {
+      val colr = if state == 0 then Color.red else {
+        val alpha = round((1.0 - posFade) * 255).toInt
+        // println(s"alpha $alpha")
+        new Color(0xFF0000 | (alpha << 24), true)
+      }
+      g.setColor(colr) // new Color(0x000000))
+      g.fillRect(0, 0, w, h)
+
+      if state == 0 then {
+        val posH = posIris * 0.5
+        var i = 0
+        while i < NumBlades do {
+          g.rotate((i - posH) * BladeAngle, cx, cy)
+          g.translate(cx, 0.0) // cy * 0.105) // XXX TODO exact value
+          val posTx = posIris.linLin(0.0, 1.0, 0.0, extent * 0.5773502691896257)
+          val atRot = AffineTransform.getTranslateInstance(posTx, 0.0)
+          val shp   = atRot.createTransformedShape(irisBaseShape)
+          g.setColor(Color.black)
+          g.fill(shp)
+          g.setColor(Color.white)
+          g.draw(shp)
+          g.setTransform(atOrig)
+          i += 1
+        }
+      }
+    }
+
+    if debug then {
       g.setColor(Color.green)
       g.drawOval(0, 0, w, h)
+    }
 
     val t1 = System.currentTimeMillis()
-    if direction == 0 then
-      if t1 - tM > WaitChange then
-        tM = t1
-        direction = if closed then -1 else +1
-      end if
-    else
-      position += direction * (t1 - tM) * RotSpeed
-      if position <= 0.0 || position >= 1.0 then
-        position  = position.clip(0.0, 1.0)
-        tM        = t1
-        direction = 0
-        closed    = !closed
-      end if
-    end if
 
-    val cmpOrig = g.getComposite
-    g.setComposite(compositeBurn)
-//    g.drawImage(imgFibre, 0, 0, null)
-    val fibreY = (animTime * 0.01).toInt % (fibreH - extent)
-    g.drawImage(imgFibre, 0, 0, extent, extent, 0, fibreY, extent, fibreY + extent, null)
-    g.setComposite(cmpOrig)
+    if state == 0 then {
+      if dirIris == 0 then {
+        if t1 - tM > WaitChange then {
+          tM = t1
+          dirIris = if closedIris then -1 else +1
+        }
+      } else {
+        posIris += dirIris * (t1 - tM) * IrisSpeed
+        // println(s"posIris $posIris")
+        if posIris <= 0.0 || posIris >= 1.0 then {
+          posIris = posIris.clip(0.0, 1.0)
+          tM = t1
+          dirIris = 0
+          closedIris = !closedIris
+          if closedIris then {
+            state   = 1
+            posFade = 0.0
+          }
+        }
+      }
 
-  end paint
+    } else if state == 1 then {
+      posFade += (t1 - tM) * FadeSpeed
+      // println(s"posFade $posFade")
+      if /*posScan <= 0.0 ||*/ posFade >= 1.0 then {
+        state   = 2
+        tM      = t1
+        dirScan = 0
+        posScan = 0.0
+      }
+
+    } else if state == 2 then {
+      if dirScan == 0 then {
+        if t1 - tM > WaitChange then {
+          tM = t1
+          dirScan = if nextDirScan then -1 else +1
+        }
+      } else {
+        posScan += dirScan * (t1 - tM) * RotScanSpeed
+        if posScan <= 0.0 || posScan >= 1.0 then {
+          posScan = posScan.clip(0.0, 1.0)
+          tM = t1
+          dirScan = 0
+          nextDirScan = !nextDirScan
+        }
+      }
+    }
+  }
 
   setCenterIndex(config.centerIndex)
   repaint()

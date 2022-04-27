@@ -35,6 +35,7 @@ object SwapRogue:
 
   case class Config(
                      radius       : Int     = 240,
+                     numBlades    : Int     = 6,
                      margin       : Int     = 0,
                      fps          : Int     = 50,
                      fullScreen   : Boolean = false,
@@ -204,6 +205,10 @@ object SwapRogue:
         descr = s"Window margin in pixels (default: ${default.margin}).",
         validate = x => x >= 0,
       )
+      val numBlades: Opt[Int] = opt(default = Some(default.numBlades),
+        descr = s"Number of blades, 3 or larger (default: ${default.numBlades}).",
+        validate = x => x >= 3
+      )
       val fps: Opt[Int] = opt(default = Some(default.fps),
         descr = s"Window refresh frames-per-second (default: ${default.fps}).",
         validate = x => x > 0,
@@ -249,6 +254,7 @@ object SwapRogue:
         centerIndex   = centerIndex   (),
         radius        = radius        (),
         margin        = margin        (),
+        numBlades     = numBlades     (),
         fps           = fps           (),
         ldrThresh     = ldrThresh     (),
         capThresh     = capThresh     (),
@@ -301,9 +307,10 @@ object SwapRogue:
       open()
       visual.component.requestFocus()
 
+    val rnd   = new Random()
+
     if c.isLaptop then {
       val t     = new Timer()
-      val rnd   = new Random()
 
       def randomMove(): Unit =
         val dly = rnd.between(6000, 16000)
@@ -333,6 +340,7 @@ object SwapRogue:
       val arrOff      = 6   // 0 for LDR, 6 for cap
       val thresh      = c.capThresh // c.ldrThresh
       val noiseDiv    = c.capNoise  // c.ldrNoise
+      var holdUpdate  = 2000
 
       val st = new Thread {
         override def run(): Unit = ReceiveSensors.run { arr =>
@@ -342,7 +350,7 @@ object SwapRogue:
           while (i < 6) {
             val h = ldrHistory(i)
             val v = arr(i + arrOff)
-            if (hasHistory) {
+            if hasHistory then {
               val vOld = h(histOff)
               h(histOff) = v
               ldrSum(i) += v - vOld
@@ -353,13 +361,13 @@ object SwapRogue:
             i += 1
           }
           histOff = (histOff + 1) % histSize
-          if (!hasHistory) hasHistory = true
+          if !hasHistory then hasHistory = true
 
-          if (t1 - tUpdate > 2000) {
+          if t1 - tUpdate > holdUpdate then {
             var i = 0
             var mi = -1
             var mt = thresh
-            while (i < 6) {
+            while i < 6 do {
               val v = arr(i + arrOff)
               val mean = ldrSum(i)/histSize
               val noiseFloor = mean / noiseDiv
@@ -371,18 +379,19 @@ object SwapRogue:
               i += 1
             }
 
-            if (c.debug && t1 - tDebug > 1000) {
+            if c.debug && t1 - tDebug > 1000 then {
               println(s"arr ${arr.slice(arrOff, arrOff + 6).mkString(", ")}")
               println(s"ldr ${ldrSum.iterator.map(_ / histSize).mkString(", ")}; mi $mi, mt $mt")
               tDebug = t1
             }
 
-            if (mi != -1 && mi != ci) {
-              if (c.verbose) {
+            if mi != -1 && mi != ci then {
+              if c.verbose then {
                 println(s"visual.setCenterIndex($mi)")
               }
               ci      = mi
               tUpdate = t1
+              holdUpdate = rnd
               Swing.onEDT {
                 visual.setCenterIndex(mi)
               }
