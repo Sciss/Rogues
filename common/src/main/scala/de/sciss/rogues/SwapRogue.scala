@@ -42,6 +42,7 @@ object SwapRogue:
                      centerIndex  : Int     = 0,
                      smooth       : Boolean = false,
                      debug        : Boolean = false,
+                     debugSensors : Boolean = false,
                      isLaptop     : Boolean = false,
                      ldrThresh    : Int     = 1000,
                    ) extends Visual.Config
@@ -216,6 +217,9 @@ object SwapRogue:
       val debug: Opt[Boolean] = toggle(default = Some(default.debug),
         descrYes = "Debug mode.",
       )
+      val debugSensors: Opt[Boolean] = toggle(default = Some(default.debugSensors),
+        descrYes = "Debug sensor reception.",
+      )
       val isLaptop: Opt[Boolean] = toggle(default = Some(default.isLaptop),
         descrYes = "Run on laptop without GPIO and sensors.",
       )
@@ -231,6 +235,7 @@ object SwapRogue:
         fullScreen    = fullScreen    (),
         smooth        = smooth        (),
         debug         = debug         (),
+        debugSensors  = debugSensors  (),
         isLaptop      = isLaptop      (),
       )
     end p
@@ -283,7 +288,7 @@ object SwapRogue:
     if c.isLaptop then randomMove()
     else {
       implicit val sCfg: ReceiveSensors.Config = ReceiveSensors.Config(
-        debug = c.debug,
+        debug = c.debugSensors,
       )
       var ci = c.centerIndex
       var tUpdate = System.currentTimeMillis()
@@ -303,11 +308,12 @@ object SwapRogue:
           while (i < 6) {
             val h = ldrHistory(i)
             val v = arr(i)
-            val vOld = h(histOff)
-            h(histOff) = v
             if (hasHistory) {
+              val vOld = h(histOff)
+              h(histOff) = v
               ldrSum(i) += v - vOld
             } else {
+              java.util.Arrays.fill(h, v)
               ldrSum(i) = v * histSize
             }
             i += 1
@@ -321,7 +327,7 @@ object SwapRogue:
             var mt = c.ldrThresh
             while (i < 6) {
               val v = arr(i)
-              val mean = ldrSum(i)/6
+              val mean = ldrSum(i)/histSize
               val t = abs(v - mean)
               if (t > mt) {
                 mt = t
@@ -331,7 +337,8 @@ object SwapRogue:
             }
 
             if (c.debug && t1 - tDebug > 1000) {
-              println(s"LDR avg ${ldrSum.iterator.map(_ / 6).mkString(", ")}; mi $mi, mt $mt")
+              println(s"arr ${arr.take(6).mkString(", ")}")
+              println(s"ldr ${ldrSum.iterator.map(_ / histSize).mkString(", ")}; mi $mi, mt $mt")
               tDebug = t1
             }
 
