@@ -13,7 +13,7 @@
 
 package de.sciss.rogues
 
-import java.awt.RenderingHints
+import java.awt.{Composite, RenderingHints}
 import java.awt.image.BufferedImage
 import javax.swing.JComponent
 import scala.swing.Graphics2D
@@ -71,7 +71,7 @@ class Canvas(fps: Int):
         if (buf != null) buf.flush()
         buf = new BufferedImage(getWidth, getHeight, BufferedImage.TYPE_INT_ARGB)
         val gi = buf.createGraphics()
-        gi.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+        // gi.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
         g2w = gi // if (g2w == null) new AWTGraphics2D(gi) else g2w.newPeer(gi)
       }
 

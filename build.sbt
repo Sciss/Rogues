@@ -36,6 +36,7 @@ lazy val common = project.in(file("common"))
     name := s"$baseName-common",
     description := "Common code",
     libraryDependencies ++= Seq(
+      "com.jhlabs"    %  "filters"                  % deps.common.jhlabs,       // image composites
       "com.pi4j"      %  "pi4j-core"                % deps.common.pi4j,         // GPIO control
       "com.pi4j"      %  "pi4j-plugin-raspberrypi"  % deps.common.pi4j,         // GPIO control
       "com.pi4j"      %  "pi4j-plugin-pigpio"       % deps.common.pi4j,         // GPIO control
@@ -63,6 +64,7 @@ lazy val deps = new {
     val fileUtil    = "1.1.5"
     val hid4java    = "develop-20201104.172733-8" // stable: "0.7.0"
     val imageJ      = "1.53j" // "1.47h"
+    val jhlabs      = "2.0.235"
     val jSerialComm = "2.8.0"
     val model       = "0.3.5"
     val numbers     = "0.2.1"

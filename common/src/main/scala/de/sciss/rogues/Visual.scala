@@ -13,10 +13,12 @@
 
 package de.sciss.rogues
 
+import com.jhlabs.composite.ColorBurnComposite
 import de.sciss.file.file
 import de.sciss.numbers.Implicits.*
 import de.sciss.rogues.SwapRogue.{Config, centers}
 
+import java.awt.image.BufferedImage
 import java.awt.{Color, RenderingHints}
 import javax.imageio.ImageIO
 import javax.swing.JComponent
@@ -32,6 +34,18 @@ object Visual {
      def smooth       : Boolean
      def debug        : Boolean
   }
+
+  def loadImage(path: String): BufferedImage = {
+    val peer0 = ImageIO.read(file(path))
+    val peer = if (peer0.getType == BufferedImage.TYPE_INT_ARGB) peer0 else {
+      val b = new BufferedImage(peer0.getWidth, peer0.getHeight, BufferedImage.TYPE_INT_ARGB)
+      val g = b.createGraphics()
+      g.drawImage(peer0, 0, 0, null)
+      g.dispose()
+      b
+    }
+    peer
+  }
 }
 class Visual(extent: Int)(implicit config: Visual.Config): //, imageIndex: Int, centerIndex: Int, smooth: Boolean, debug: Boolean):
 
@@ -46,12 +60,17 @@ class Visual(extent: Int)(implicit config: Visual.Config): //, imageIndex: Int, 
   private val imageIndex  = config.imageIndex
   private val centerIndex = config.centerIndex
 
-  private val imgPath = s"images/scan$imageIndex.jpg"
+  private val imgPath       = s"images/scan$imageIndex.jpg"
+  private val imgFibrePath  = s"images/fibre.jpg"
   // println(imgPath)
-  private val img     = ImageIO.read(file(imgPath))
-  private val imgW    = img.getWidth
-  private val imgH    = img.getHeight
-  private val radius  = extent / 2 // .0
+  private val img       = Visual.loadImage(imgPath)
+  private val imgFibre  = Visual.loadImage(imgFibrePath)
+
+  println(s"imgFibre.w ${imgFibre.getWidth}, imgFibre.h ${imgFibre.getHeight}")
+
+  private val imgW      = img.getWidth
+  private val imgH      = img.getHeight
+  private val radius    = extent / 2 // .0
 
   //    private val center = centers.find(c =>
   //      c.cx >= radius && (imgW - c.cx >= radius) &&
@@ -102,6 +121,9 @@ class Visual(extent: Int)(implicit config: Visual.Config): //, imageIndex: Int, 
   private val smooth = config.smooth
   private val debug  = config.debug
 
+  private val compositeNormal = java.awt.AlphaComposite.SrcOver
+  private val compositeBurn   = new ColorBurnComposite(1f)
+
   protected def paint(g: Graphics2D, animTime: Double): Unit =
     //      val p   = peer
     val w   = extent // p.getWidth
@@ -124,13 +146,14 @@ class Visual(extent: Int)(implicit config: Visual.Config): //, imageIndex: Int, 
     val tx = focusX - focusMinX
     val ty = focusY - focusMinY
 
-    // g.setColor(Color.black)
-    // g.fillRect(0, 0, w, h)
+    g.setColor(Color.blue)
+    g.fillRect(0, 0, w, h)
 
-    if (smooth)
+    if (smooth) {
       g.setRenderingHint(RenderingHints.KEY_ANTIALIASING  , RenderingHints.VALUE_ANTIALIAS_ON         )
-    g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE          )
-    g.setRenderingHint(RenderingHints.KEY_INTERPOLATION , RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+      g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE          )
+      g.setRenderingHint(RenderingHints.KEY_INTERPOLATION , RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+    }
 
     val atOrig = g.getTransform
     //      val posH = position * 0.5
@@ -159,6 +182,11 @@ class Visual(extent: Int)(implicit config: Visual.Config): //, imageIndex: Int, 
         closed    = !closed
       end if
     end if
+
+    val cmpOrig = g.getComposite
+    g.setComposite(compositeBurn)
+    g.drawImage(imgFibre, 0, 0, null)
+    g.setComposite(cmpOrig)
 
   end paint
 
