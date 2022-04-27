@@ -19,9 +19,9 @@ Builds with sbt against Scala 3. See options: `sbt 'common/run --help'`. E.g.
     sbt 'common/runMain de.sciss.rogues.Iris --num-blades 7 --full-screen'
 
     sbt common/assembly
-    java -cp common/Rogues-common-assembly-0.1.0-SNAPSHOT.jar de.sciss.rogues.ReceiveSensors --gui
+    java -cp common/Rogues-common.jar de.sciss.rogues.ReceiveSensors --gui
 
-    java -Dsun.java2d.opengl=true -cp common/Rogues-common-assembly-0.1.0-SNAPSHOT.jar de.sciss.rogues.ScanRotaTest --margin 0 --full-screen --center-index 5
+    java -Dsun.java2d.opengl=true -cp common/Rogues-common.jar de.sciss.rogues.SwapRogue --margin 0 --full-screen --center-index 5
 
 To improve Pi 4 performance: `java -Dsun.java2d.opengl=true ...`
 
@@ -39,7 +39,7 @@ pigpio must be installed first: http://abyz.me.uk/rpi/pigpio/download.html
 The in `Rogues`:
 
     sbt common/assembly
-    sudo java -cp common/Rogues-common-assembly-0.1.0-SNAPSHOT.jar de.sciss.rogues.CapSense
+    sudo java -cp common/Rogues-common.jar de.sciss.rogues.CapSense
 
 (yes, I need to get rid of the sudo; thanks pi4j)
 

@@ -10,3 +10,4 @@ project/boot/
 *-assembly-*.jar
 workspaces/*.mllt/*.csv
 pico_stuff/.vscode
+common/Rogues-common.jar

@@ -51,6 +51,7 @@ lazy val common = project.in(file("common"))
       "org.hid4java"  %  "hid4java"                 % deps.common.hid4java,     // USB HID access
       "com.fazecast"  %  "jSerialComm"              % deps.common.jSerialComm,  // Serial port reading
     ),
+    assembly / assemblyJarName := s"$baseName-common.jar",
     resolvers += Resolver.sonatypeRepo("snapshots"),  // needed for hid4java
     buildInfoPackage := "de.sciss.rogues",
   )
