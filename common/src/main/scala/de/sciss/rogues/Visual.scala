@@ -13,7 +13,6 @@
 
 package de.sciss.rogues
 
-import com.jhlabs.composite.ColorBurnComposite
 import de.sciss.file.file
 import de.sciss.numbers.Implicits.*
 import de.sciss.rogues.SwapRogue.{Config, centers}
@@ -61,7 +60,7 @@ class Visual(extent: Int)(implicit config: Visual.Config): //, imageIndex: Int, 
   private val centerIndex = config.centerIndex
 
   private val imgPath       = s"images/scan$imageIndex.jpg"
-  private val imgFibrePath  = s"images/fibre.jpg"
+  private val imgFibrePath  = s"images/fibre4.jpg"
   // println(imgPath)
   private val img       = Visual.loadImage(imgPath)
   private val imgFibre  = Visual.loadImage(imgFibrePath)
@@ -122,7 +121,8 @@ class Visual(extent: Int)(implicit config: Visual.Config): //, imageIndex: Int, 
   private val debug  = config.debug
 
   private val compositeNormal = java.awt.AlphaComposite.SrcOver
-  private val compositeBurn   = new ColorBurnComposite(1f)
+//  private val compositeBurn   = new ColorBurnComposite(1f)
+  private val compositeBurn: java.awt.Composite = new com.jhlabs.composite.MultiplyComposite(1f)
 
   protected def paint(g: Graphics2D, animTime: Double): Unit =
     //      val p   = peer
@@ -185,7 +185,9 @@ class Visual(extent: Int)(implicit config: Visual.Config): //, imageIndex: Int, 
 
     val cmpOrig = g.getComposite
     g.setComposite(compositeBurn)
-    g.drawImage(imgFibre, 0, 0, null)
+//    g.drawImage(imgFibre, 0, 0, null)
+    val fibreY = (animTime * 0.01).toInt % (2538 - 480)
+    g.drawImage(imgFibre, 0, 0, 480, 480, 0, fibreY, 480, fibreY + 480, null)
     g.setComposite(cmpOrig)
 
   end paint
