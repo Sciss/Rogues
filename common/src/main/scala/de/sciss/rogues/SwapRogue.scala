@@ -25,9 +25,10 @@ import de.sciss.numbers.Implicits.*
 import org.rogach.scallop.{ScallopConf, ScallopOption as Opt}
 
 import java.awt.event.{KeyAdapter, KeyEvent}
-import math.{max, min}
+import math.{max, min, random}
 import javax.imageio.ImageIO
 import javax.swing.JComponent
+import scala.util.Random
 
 object SwapRogue:
   case class Center(cx: Int, cy: Int, r: Int, strength: Double)
@@ -39,10 +40,11 @@ object SwapRogue:
                      margin       : Int     = 60,
                      fps          : Int     = 50,
                      fullScreen   : Boolean = false,
-                     imageIndex   : Int     = 52,
+                     imageIndex   : Int     = 51,
                      centerIndex  : Int     = 0,
                      smooth       : Boolean = false,
                      debug        : Boolean = false,
+                     isLaptop     : Boolean = false,
                    ) extends Visual.Config
 
   val centers: Map[Int, Seq[Center]] = Map(
@@ -219,6 +221,9 @@ object SwapRogue:
       val debug: Opt[Boolean] = toggle(default = Some(default.debug),
         descrYes = "Debug mode.",
       )
+      val isLaptop: Opt[Boolean] = toggle(default = Some(default.isLaptop),
+        descrYes = "Run on laptop without GPIO and sensors.",
+      )
 
       verify()
       val config: Config = Config(
@@ -232,6 +237,7 @@ object SwapRogue:
         fullScreen    = fullScreen    (),
         smooth        = smooth        (),
         debug         = debug         (),
+        isLaptop      = isLaptop      (),
       )
     end p
 
@@ -240,7 +246,7 @@ object SwapRogue:
   end main
 
   /** Must be called on the EDT. */
-  def run()(implicit c: Config): Unit =
+  def run()(implicit c: Config): Unit = {
     val extent  = (c.radius + c.margin) * 2
     val visual  = new Visual(extent = extent)
 
@@ -264,6 +270,49 @@ object SwapRogue:
       centerOnScreen()
       open()
       visual.component.requestFocus()
+
+//      if (c.isLaptop) {
+//
+//      }
+
+    val t     = new Timer()
+    val rnd   = new Random()
+
+    def randomMove(): Unit =
+      val dly = rnd.between(6000, 16000)
+      t.schedule({ () =>
+        val idx = rnd.between(0, 6)
+        visual.setCenterIndex(idx)
+        randomMove()
+      }, dly)
+
+    if c.isLaptop then randomMove()
+    else {
+      implicit val sCfg: ReceiveSensors.Config = ReceiveSensors.Config(
+        debug = c.debug,
+      )
+      var ci = c.centerIndex
+      var tUpdate = System.currentTimeMillis()
+      val st = new Thread {
+        override def run(): Unit = ReceiveSensors.run { arr =>
+          val t1  = System.currentTimeMillis()
+          if (t1 - tUpdate > 4000) {
+            val m   = arr.max
+            val mi  = arr.indexOf(m) % 6
+            if (mi != ci) {
+              ci      = mi
+              tUpdate = t1
+              Swing.onEDT {
+                visual.setCenterIndex(mi)
+              }
+            }
+          }
+        }
+      }
+      st.setDaemon(true)
+      st.start()
+    }
+  }
 
 //    val t = new Timer()
 //    t.scheduleAtFixedRate({ () =>

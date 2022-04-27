@@ -79,8 +79,8 @@ class Visual(extent: Int)(implicit config: Visual.Config) {
 
   private var center: Center = _
 
-  private var focusTgtX   : Double        = center.cx
-  private var focusTgtY   : Double        = center.cy
+  private var focusTgtX   : Double = _
+  private var focusTgtY   : Double = _
 
   private def mkCenter(idx: Int): Center = {
     val c0 = centers(imageIndex)(idx)
@@ -95,7 +95,7 @@ class Visual(extent: Int)(implicit config: Visual.Config) {
     val _center = mkCenter(idx)
     center      = _center
     focusTgtX   = _center.cx
-    focusTgtX   = _center.cy
+    focusTgtY   = _center.cy
   }
 
 

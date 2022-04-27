@@ -93,9 +93,9 @@ object ReceiveSensors:
     end p
 
     implicit val c: Config = p.config
-    run()
+    run(_ => ())
 
-  def run()(implicit c: Config): Unit =
+  def run(fun: Array[Int] => Unit)(implicit c: Config): Unit =
     val sensorVals = new Array[Int](c.numSensors)
 
     val recFileOpt = c.record.map { f =>
@@ -152,6 +152,8 @@ object ReceiveSensors:
 
     var recBufOff = 0
     runWith(sensorVals = sensorVals) {
+      fun(sensorVals)
+      
       recFileOpt.foreach { af =>
         var si = 0
         while si < c.numSensors do
