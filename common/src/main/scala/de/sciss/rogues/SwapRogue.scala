@@ -25,7 +25,7 @@ import de.sciss.numbers.Implicits.*
 import org.rogach.scallop.{ScallopConf, ScallopOption as Opt}
 
 import java.awt.event.{KeyAdapter, KeyEvent}
-import math.{max, min, random}
+import math.{max, min, abs}
 import javax.imageio.ImageIO
 import javax.swing.JComponent
 import scala.util.Random
@@ -35,9 +35,7 @@ object SwapRogue:
 
   case class Config(
                      radius       : Int     = 240,
-                     xOffset      : Double  = -0.25,
-                     yOffset      : Double  = 0.0,
-                     margin       : Int     = 60,
+                     margin       : Int     = 0,
                      fps          : Int     = 50,
                      fullScreen   : Boolean = false,
                      imageIndex   : Int     = 51,
@@ -45,6 +43,7 @@ object SwapRogue:
                      smooth       : Boolean = false,
                      debug        : Boolean = false,
                      isLaptop     : Boolean = false,
+                     ldrThresh    : Int     = 1000,
                    ) extends Visual.Config
 
   val centers: Map[Int, Seq[Center]] = Map(
@@ -196,20 +195,16 @@ object SwapRogue:
         descr = s"Envelope radius, greater than zero (default: ${default.radius}).",
         validate = x => x > 0,
       )
-      val xOffset: Opt[Double] = opt(default = Some(default.xOffset),
-        descr = s"Rotation center horizontal offset, between -1 and +1 (default: ${default.xOffset}).",
-        validate = x => x >= -1.0 && x <= +1.0,
-      )
-      val yOffset: Opt[Double] = opt(default = Some(default.yOffset),
-        descr = s"Rotation center vertical offset, between -1 and +1 (default: ${default.yOffset}).",
-        validate = x => x >= -1.0 && x <= +1.0,
-      )
       val margin: Opt[Int] = opt(default = Some(default.margin),
         descr = s"Window margin in pixels (default: ${default.margin}).",
         validate = x => x >= 0,
       )
       val fps: Opt[Int] = opt(default = Some(default.fps),
         descr = s"Window refresh frames-per-second (default: ${default.fps}).",
+        validate = x => x > 0,
+      )
+      val ldrThresh: Opt[Int] = opt(default = Some(default.ldrThresh),
+        descr = s"LDR change threshold (default: ${default.ldrThresh}).",
         validate = x => x > 0,
       )
       val fullScreen: Opt[Boolean] = toggle(default = Some(default.fullScreen),
@@ -230,10 +225,9 @@ object SwapRogue:
         imageIndex    = imageIndex    (),
         centerIndex   = centerIndex   (),
         radius        = radius        (),
-        xOffset       = xOffset       (),
-        yOffset       = yOffset       (),
         margin        = margin        (),
         fps           = fps           (),
+        ldrThresh     = ldrThresh     (),
         fullScreen    = fullScreen    (),
         smooth        = smooth        (),
         debug         = debug         (),
@@ -293,13 +287,55 @@ object SwapRogue:
       )
       var ci = c.centerIndex
       var tUpdate = System.currentTimeMillis()
+      var tDebug  = tUpdate
+
+      val histSize    = 200 // 20 Hz rate -- 10 seconds history
+      val ldrHistory  = Array.ofDim[Int](6, histSize)
+      val ldrSum      = new Array[Int](6)
+      var hasHistory  = false
+      var histOff     = 0
+
       val st = new Thread {
         override def run(): Unit = ReceiveSensors.run { arr =>
           val t1  = System.currentTimeMillis()
-          if (t1 - tUpdate > 4000) {
-            val m   = arr.max
-            val mi  = arr.indexOf(m) % 6
-            if (mi != ci) {
+
+          var i = 0
+          while (i < 6) {
+            val h = ldrHistory(i)
+            val v = arr(i)
+            val vOld = h(histOff)
+            h(histOff) = v
+            if (hasHistory) {
+              ldrSum(i) += v - vOld
+            } else {
+              ldrSum(i) = v * histSize
+            }
+            i += 1
+          }
+          histOff = (histOff + 1) % histSize
+          if (!hasHistory) hasHistory = true
+
+          if (t1 - tUpdate > 2000) {
+            var i = 0
+            var mi = -1
+            var mt = c.ldrThresh
+            while (i < 6) {
+              val v = arr(i)
+              val mean = ldrSum(i)/6
+              val t = abs(v - mean)
+              if (t > mt) {
+                mt = t
+                mi = i
+              }
+              i += 1
+            }
+
+            if (c.debug && t1 - tDebug > 1000) {
+              println(s"LDR avg ${ldrSum.iterator.map(_ / 6).mkString(", ")}; mi $mi, mt $mt")
+              tDebug = t1
+            }
+
+            if (mi != -1 && mi != ci) {
               ci      = mi
               tUpdate = t1
               Swing.onEDT {
