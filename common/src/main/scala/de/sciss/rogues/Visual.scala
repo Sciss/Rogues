@@ -33,6 +33,7 @@ object Visual {
      def centerIndex  : Int
      def smooth       : Boolean
      def debug        : Boolean
+     def verbose      : Boolean
      def numBlades    : Int
   }
 
@@ -86,10 +87,10 @@ class Visual(extent: Int)(implicit config: Visual.Config) {
 
   private def mkCenter(idx: Int): Center = {
     val c0 = centers(imageIndex)(idx)
-    println(c0)
+//    println(c0)
     val radiusI = radius // .ceil.toInt
     val c1 = c0.copy(cx = c0.cx.clip(radiusI, imgW - radiusI), cy = c0.cy.clip(radiusI, imgH - radiusI))
-    println(c1)
+//    println(c1)
     c1
   }
 
@@ -103,6 +104,7 @@ class Visual(extent: Int)(implicit config: Visual.Config) {
 
   private var dirIris     = 0
   private var dirScan     = 0
+  private var dirFade     = 1
   private var tM          = t0
   private var nextDirScan = true
   private var closedIris  = true
@@ -258,7 +260,7 @@ class Visual(extent: Int)(implicit config: Visual.Config) {
       } else {
         posIris += dirIris * (t1 - tM) * IrisSpeed
         // println(s"posIris $posIris")
-        if posIris <= 0.0 || posIris >= 1.0 then {
+        if posIris < 0.0 || posIris > 1.0 then {
           posIris = posIris.clip(0.0, 1.0)
           tM = t1
           dirIris = 0
@@ -266,18 +268,28 @@ class Visual(extent: Int)(implicit config: Visual.Config) {
           if closedIris then {
             state   = 1
             posFade = 0.0
+            dirFade = 1
+            if config.verbose then println(s"state = $state")
           }
         }
       }
 
     } else if state == 1 then {
-      posFade += (t1 - tM) * FadeSpeed
+      posFade += dirFade * (t1 - tM) * FadeSpeed
       // println(s"posFade $posFade")
-      if /*posScan <= 0.0 ||*/ posFade >= 1.0 then {
-        state   = 2
-        tM      = t1
-        dirScan = 0
-        posScan = 0.0
+      if posFade < 0.0 || posFade > 1.0 then {
+        if dirFade == 1 then {
+          state   = 2
+          dirScan = 0
+          posScan = 0.0
+          if config.verbose then println(s"state = $state")
+        } else {
+          state   = 0
+          dirIris = -1
+          posIris = 1.0
+          if config.verbose then println(s"state = $state")
+        }
+        tM = t1
       }
 
     } else if state == 2 then {
@@ -288,11 +300,16 @@ class Visual(extent: Int)(implicit config: Visual.Config) {
         }
       } else {
         posScan += dirScan * (t1 - tM) * RotScanSpeed
-        if posScan <= 0.0 || posScan >= 1.0 then {
-          posScan = posScan.clip(0.0, 1.0)
-          tM = t1
-          dirScan = 0
+        if posScan < 0.0 || posScan > 1.0 then {
+          posScan     = posScan.clip(0.0, 1.0)
+          tM          = t1
+          dirScan     = 0
           nextDirScan = !nextDirScan
+
+          state   = 1
+          posFade = 1.0
+          dirFade = -1
+          if config.verbose then println(s"state = $state")
         }
       }
     }

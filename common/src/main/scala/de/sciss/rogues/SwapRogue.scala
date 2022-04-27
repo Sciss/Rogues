@@ -182,7 +182,7 @@ object SwapRogue:
     ),
   )
 
-  def main(args: Array[String]): Unit =
+  def main(args: Array[String]): Unit = {
     object p extends ScallopConf(args):
       import org.rogach.scallop.*
 
@@ -279,15 +279,15 @@ object SwapRogue:
     }
 
     Swing.onEDT(run())
-  end main
+  }
 
   /** Must be called on the EDT. */
   def run()(implicit c: Config): Unit = {
     val extent  = (c.radius + c.margin) * 2
     val visual  = new Visual(extent = extent)
 
-    new MainFrame:
-      if c.fullScreen then
+    new MainFrame {
+      if c.fullScreen then {
         peer.setUndecorated(true)
         visual.component.setCursor(java.awt.Toolkit.getDefaultToolkit.createCustomCursor(
           new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB), new Point(0, 0), "hidden"
@@ -298,19 +298,21 @@ object SwapRogue:
               if (e.getKeyCode == KeyEvent.VK_ESCAPE) closeOperation()
           }
         )
-      else
+      } else {
         title = "SwapRogue"
+      }
 
       contents  = Component.wrap(visual.component)
       pack()
       centerOnScreen()
       open()
       visual.component.requestFocus()
+    }
 
-    val rnd   = new Random()
+    val rnd = new Random()
 
     if c.isLaptop then {
-      val t     = new Timer()
+      val t = new Timer()
 
       def randomMove(): Unit =
         val dly = rnd.between(6000, 16000)
@@ -328,9 +330,9 @@ object SwapRogue:
       implicit val sCfg: ReceiveSensors.Config = ReceiveSensors.Config(
         debug = c.debugSensors,
       )
-      var ci = c.centerIndex
-      var tUpdate = System.currentTimeMillis()
-      var tDebug  = tUpdate
+      var ci          = c.centerIndex
+      var tUpdate     = System.currentTimeMillis()
+      var tDebug      = tUpdate
 
       val histSize    = 200 // 20 Hz rate -- 10 seconds history
       val ldrHistory  = Array.ofDim[Int](6, histSize)
@@ -391,7 +393,7 @@ object SwapRogue:
               }
               ci      = mi
               tUpdate = t1
-              holdUpdate = rnd
+              holdUpdate = rnd.between(1500, 4500)
               Swing.onEDT {
                 visual.setCenterIndex(mi)
               }
