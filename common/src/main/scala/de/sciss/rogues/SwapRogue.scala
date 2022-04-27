@@ -41,10 +41,14 @@ object SwapRogue:
                      imageIndex   : Int     = 51,
                      centerIndex  : Int     = 0,
                      smooth       : Boolean = false,
+                     verbose      : Boolean = false,
                      debug        : Boolean = false,
                      debugSensors : Boolean = false,
                      isLaptop     : Boolean = false,
-                     ldrThresh    : Int     = 1000,
+                     ldrThresh    : Int     = 100,
+                     ldrNoise     : Int     =  10,
+                     capThresh    : Int     = 200,
+                     capNoise     : Int     =   5,
                    ) extends Visual.Config
 
   val centers: Map[Int, Seq[Center]] = Map(
@@ -208,6 +212,18 @@ object SwapRogue:
         descr = s"LDR change threshold (default: ${default.ldrThresh}).",
         validate = x => x > 0,
       )
+      val capThresh: Opt[Int] = opt(default = Some(default.capThresh),
+        descr = s"Capacitive change threshold (default: ${default.capThresh}).",
+        validate = x => x > 0,
+      )
+      val ldrNoise: Opt[Int] = opt(default = Some(default.ldrNoise),
+        descr = s"LDR noise floor divider (default: ${default.ldrNoise}).",
+        validate = x => x > 0,
+      )
+      val capNoise: Opt[Int] = opt(default = Some(default.capNoise),
+        descr = s"LDR noise floor divider (default: ${default.capNoise}).",
+        validate = x => x > 0,
+      )
       val fullScreen: Opt[Boolean] = toggle(default = Some(default.fullScreen),
         descrYes = "Put window into full-screen mode.",
       )
@@ -216,6 +232,9 @@ object SwapRogue:
       )
       val debug: Opt[Boolean] = toggle(default = Some(default.debug),
         descrYes = "Debug mode.",
+      )
+      val verbose: Opt[Boolean] = toggle(default = Some(default.verbose),
+        descrYes = "Verbosity on.",
       )
       val debugSensors: Opt[Boolean] = toggle(default = Some(default.debugSensors),
         descrYes = "Debug sensor reception.",
@@ -232,15 +251,27 @@ object SwapRogue:
         margin        = margin        (),
         fps           = fps           (),
         ldrThresh     = ldrThresh     (),
+        capThresh     = capThresh     (),
+        ldrNoise      = ldrNoise      (),
+        capNoise      = capNoise      (),
         fullScreen    = fullScreen    (),
         smooth        = smooth        (),
         debug         = debug         (),
+        verbose       = verbose       (),
         debugSensors  = debugSensors  (),
         isLaptop      = isLaptop      (),
       )
     end p
 
     implicit val c: Config = p.config
+
+    if !c.isLaptop then {
+      // disable screen blanking
+      import sys.process._
+      Seq("xset", "s", "off").!
+      Seq("xset", "-dpms").!
+    }
+
     Swing.onEDT(run())
   end main
 
@@ -262,7 +293,7 @@ object SwapRogue:
           }
         )
       else
-        title = "ScanRota"
+        title = "SwapRogue"
 
       contents  = Component.wrap(visual.component)
       pack()
@@ -270,23 +301,23 @@ object SwapRogue:
       open()
       visual.component.requestFocus()
 
-//      if (c.isLaptop) {
-//
-//      }
+    if c.isLaptop then {
+      val t     = new Timer()
+      val rnd   = new Random()
 
-    val t     = new Timer()
-    val rnd   = new Random()
+      def randomMove(): Unit =
+        val dly = rnd.between(6000, 16000)
+        t.schedule({ () =>
+          val idx = rnd.between(0, 6)
+          Swing.onEDT {
+            visual.setCenterIndex(idx)
+          }
+          randomMove()
+        }, dly)
 
-    def randomMove(): Unit =
-      val dly = rnd.between(6000, 16000)
-      t.schedule({ () =>
-        val idx = rnd.between(0, 6)
-        visual.setCenterIndex(idx)
-        randomMove()
-      }, dly)
+      randomMove()
 
-    if c.isLaptop then randomMove()
-    else {
+    } else {
       implicit val sCfg: ReceiveSensors.Config = ReceiveSensors.Config(
         debug = c.debugSensors,
       )
@@ -299,6 +330,9 @@ object SwapRogue:
       val ldrSum      = new Array[Int](6)
       var hasHistory  = false
       var histOff     = 0
+      val arrOff      = 6   // 0 for LDR, 6 for cap
+      val thresh      = c.capThresh // c.ldrThresh
+      val noiseDiv    = c.capNoise  // c.ldrNoise
 
       val st = new Thread {
         override def run(): Unit = ReceiveSensors.run { arr =>
@@ -307,7 +341,7 @@ object SwapRogue:
           var i = 0
           while (i < 6) {
             val h = ldrHistory(i)
-            val v = arr(i)
+            val v = arr(i + arrOff)
             if (hasHistory) {
               val vOld = h(histOff)
               h(histOff) = v
@@ -324,12 +358,13 @@ object SwapRogue:
           if (t1 - tUpdate > 2000) {
             var i = 0
             var mi = -1
-            var mt = c.ldrThresh
+            var mt = thresh
             while (i < 6) {
-              val v = arr(i)
+              val v = arr(i + arrOff)
               val mean = ldrSum(i)/histSize
+              val noiseFloor = mean / noiseDiv
               val t = abs(v - mean)
-              if (t > mt) {
+              if (t > noiseFloor && t > mt) {
                 mt = t
                 mi = i
               }
@@ -337,12 +372,15 @@ object SwapRogue:
             }
 
             if (c.debug && t1 - tDebug > 1000) {
-              println(s"arr ${arr.take(6).mkString(", ")}")
+              println(s"arr ${arr.slice(arrOff, arrOff + 6).mkString(", ")}")
               println(s"ldr ${ldrSum.iterator.map(_ / histSize).mkString(", ")}; mi $mi, mt $mt")
               tDebug = t1
             }
 
             if (mi != -1 && mi != ci) {
+              if (c.verbose) {
+                println(s"visual.setCenterIndex($mi)")
+              }
               ci      = mi
               tUpdate = t1
               Swing.onEDT {
