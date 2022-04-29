@@ -180,6 +180,15 @@ object SwapRogue:
       Center(cx =  936, cy = 1927, r =  27, strength =  26.6),
       Center(cx =  860, cy = 1763, r =  31, strength =  31.0),
     ),
+    63 -> Seq(
+      Center(cx =  253, cy = 1211, r = 158, strength = 157.6),
+      Center(cx = 1544, cy =  160, r = 131, strength = 130.9),
+      Center(cx =  344, cy = 2359, r =  53, strength =  52.7),
+      Center(cx =  439, cy =  696, r =  31, strength =  31.4),
+      Center(cx = 1067, cy =   60, r =  27, strength =  26.8),
+      Center(cx = 1362, cy = 1438, r =  32, strength =  32.2),
+      Center(cx = 1090, cy = 1430, r =  25, strength =  25.2),
+    )
   )
 
   def main(args: Array[String]): Unit = {
