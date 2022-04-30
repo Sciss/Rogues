@@ -306,10 +306,10 @@ class Visual(extent: Int)(implicit config: Visual.Config) {
           dirScan     = 0
           nextDirScan = !nextDirScan
 
-          state   = 1
-          posFade = 1.0
-          dirFade = -1
-          if config.verbose then println(s"state = $state")
+//          state   = 1
+//          posFade = 1.0
+//          dirFade = -1
+//          if config.verbose then println(s"state = $state")
         }
       }
     }
